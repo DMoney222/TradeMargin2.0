@@ -5,7 +5,7 @@
 .chooser{max-width:1100px;margin:0 auto;padding:18px 14px 30px}.eyebrow{font-size:12px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:#23754f}.tradeGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;margin:20px 0}.tradeCard{text-align:left;background:white;color:#163b2e;border:2px solid #dcebe1;border-radius:14px;padding:18px;min-height:115px;box-shadow:0 1px 8px #092a1910}.tradeCard span{display:block;font-size:29px;margin-bottom:8px}.tradeCard small{display:block;margin-top:6px;color:#678270;font-weight:400}.tradeCard.active{border-color:#16804f;background:#e4f4e9}.choosePanel{background:white;border-radius:16px;padding:20px;margin-top:14px;box-shadow:0 2px 12px #0b301b13}.jobGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:15px 0}.jobCard{border:2px solid #dcebe1;background:#fff;color:#1b4832;text-align:left;min-height:70px}.jobCard.active{border-color:#157d51;background:#e5f5e9}#workspace[hidden],#chooser[hidden],#jobChooser[hidden]{display:none!important}.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.topbar h2{margin:0}.badge{background:#e7f4e9;border-radius:20px;color:#17623f;font-size:13px;padding:7px 10px;font-weight:700}#chooseStatus{color:#5b735f;font-size:14px}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #d6a747;outline-offset:2px}@media(max-width:580px){.tradeGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.tradeCard{padding:12px;min-height:105px}} 
 </style></head><body>
 <header><h1>⚒ TradeMargin 2.0</h1><p>Accurate estimates • Compare suppliers • All skilled trades</p></header>
-<section id="chooser" class="chooser"><div class="choosePanel"><div class="eyebrow">Welcome to TradeMargin</div><h2 style="font-size:28px;margin:8px 0">What trade are you estimating?</h2><p class="hint">Start by choosing your trade. Each trade has its own job types and starter material lists.</p><div id="tradeCards" class="tradeGrid"></div><div id="jobChooser" hidden><h2 id="chosenTradeTitle">Choose a job type</h2><p class="hint">Select a job to start with its materials, or choose a blank estimate.</p><div id="jobCards" class="jobGrid"></div><div class="actions"><button id="startEstimate">Create estimate →</button><button id="backTrades" class="secondary">← Change trade</button></div></div><div id="chooseStatus" aria-live="polite"></div></div></section>
+<section class="chooser" style="padding-bottom:0"><div class="choosePanel"><div class="topbar"><div><div class="eyebrow">Supplier price tracker</div><h2 style="margin:5px 0">Latest price checks & alerts</h2></div><button id="checkFeed" class="secondary">↻ Check for updates</button></div><p id="feedStamp" class="hint" aria-live="polite">Checking supplier data…</p><div id="supplierStatus" class="stats"></div><div id="priceAlerts" aria-live="polite" style="margin-top:10px"></div><p class="hint">Watch individual product listings from your estimate to see changes here on future visits. Alerts appear inside TradeMargin when you open it; this version does not send push notifications or emails. Prices are not necessarily local or in stock.</p></div></section><section id="chooser" class="chooser"><div class="choosePanel"><div class="eyebrow">Welcome to TradeMargin</div><h2 style="font-size:28px;margin:8px 0">What trade are you estimating?</h2><p class="hint">Start by choosing your trade. Each trade has its own job types and starter material lists.</p><div id="tradeCards" class="tradeGrid"></div><div id="jobChooser" hidden><h2 id="chosenTradeTitle">Choose a job type</h2><p class="hint">Select a job to start with its materials, or choose a blank estimate.</p><div id="jobCards" class="jobGrid"></div><div class="actions"><button id="startEstimate">Create estimate →</button><button id="backTrades" class="secondary">← Change trade</button></div></div><div id="chooseStatus" aria-live="polite"></div></div></section>
 <main id="workspace" hidden><section class="card"><div class="topbar"><div><div class="eyebrow">Your workspace</div><h2 id="workspaceTitle">New estimate</h2></div><button id="switchTrade" class="secondary">⇄ Change trade / job</button></div><div class="badge" id="activeJob">Custom estimate</div></section><div class="notice"><strong>Price-check mode:</strong> Tap supplier search links to look up current listings, then enter verified prices below. This static website does <strong>not</strong> automatically retrieve live prices, stock levels, tax or delivery quotes. Automatic supplier data is available only after a price service is configured; where present, check listing links, location and package sizes. Example material lists and prices are not guaranteed accurate.</div>
 <section class="card"><h2>1. Project and trade</h2><div class="grid">
 <label>Project name<input id="project" placeholder="Customer job"></label>
@@ -47,7 +47,27 @@ const trades={
 "Custom / Other Trade":[]};
 const vendors=["Kent","Home Depot","RONA","Home Hardware","Canadian Tire","Wolseley","EMCO","Guillevin","Westburne","Nedco","Grainger","Local supplier"];
 const $=id=>document.getElementById(id),num=x=>Math.max(0,Number(x)||0),money=x=>new Intl.NumberFormat("en-CA",{style:"currency",currency:"CAD"}).format(x),fields=["project","trade","city","hours","rate","markup","tax","stopHours","shoppingRate","fuel","other","projectCosts"];
-let items=[];
+let items=[];let latestFeed=null;
+function getWatches(){try{let x=JSON.parse(localStorage.getItem("TradeMarginPriceWatches")||"[]");return Array.isArray(x)?x:[]}catch(e){return []}}
+function saveWatches(w){try{localStorage.setItem("TradeMarginPriceWatches",JSON.stringify(w))}catch(e){$("feedStamp").textContent="Watchlist storage is unavailable on this device."}}
+function watchListing(o){let watches=getWatches();if(watches.some(w=>w.store===o.store&&w.url===o.url&&w.location===o.location)){alert("Already watching this listing.");return}watches.push({store:o.store,url:o.url,location:o.location||"",name:o.name,price:o.price,checked_at:o.checked_at||latestFeed?.updated_at});saveWatches(watches);displayFeed(latestFeed);$("priceStatus").textContent="Watching "+o.name+". You'll see changes in TradeMargin after the price feed is refreshed."}
+function displayFeed(feed){if(!feed)return;const updated=feed.updated_at?new Date(feed.updated_at):null;const when=updated&&!Number.isNaN(updated.getTime())?updated.toLocaleString():"Never";const elapsed=updated?Date.now()-updated.getTime():Infinity;const old=elapsed>86400000;const statuses=feed.suppliers||{},summary=$("supplierStatus");summary.replaceChildren();
+$("feedStamp").textContent="Last supplier-data refresh: "+when+(old?" • older than 24 hours":"")+" • "+(feed.offers||[]).length+" product listings. Not live on demand; store-level prices and stock may differ.";
+for(let [store,state] of Object.entries(statuses)){let card=el("div","stat"),label=el("span","",store),detail=el("b","",state.status==="results"?String(state.offers)+" prices":"No prices");detail.style.fontSize="17px";card.append(label,detail,el("small","hint",state.store==="unverified"?"Local store not verified":"Store "+state.store));summary.append(card)}
+const alerts=$("priceAlerts");alerts.replaceChildren();const list=getWatches();if(!list.length){alerts.append(el("p","hint","No watched products yet. To watch a product, select a trade and job, check available supplier price data, and tap Watch price."));return}
+const byKey=new Map((feed.offers||[]).map(o=>[[o.store,o.url,o.location||""].join("|"),o]));
+let changes=0;for(let w of list){let row=el("div","item"),match=byKey.get([w.store,w.url,w.location].join("|")),price=match?Number(match.price):null;
+let changed=match&&Number.isFinite(price)&&Math.round(price*100)!==Math.round(Number(w.price)*100);
+const delta=changed?price-Number(w.price):0;
+row.append(el("strong",changed?(delta<0?"🔻 Price dropped ":"🔺 Price increased ")+money(Math.abs(delta)):"👁 Watching price"));
+row.append(el("p","hint",w.store+" • "+w.name+" • "+(match?"Latest "+money(price)+" / saved "+money(w.price):"Not returned in latest supplier refresh")+" • "+w.location));
+let actions=el("div","actions"),link=el("a","","Product listing ↗");link.href=w.url;link.target="_blank";link.rel="noopener noreferrer";actions.append(link);
+if(changed){changes++;actions.append(button("Mark price seen",()=>{w.price=price;w.checked_at=match.checked_at;saveWatches(list);displayFeed(latestFeed)},"secondary"))}
+actions.append(button("Stop watching",()=>{saveWatches(list.filter(x=>!(x.store===w.store&&x.url===w.url&&x.location===w.location)));displayFeed(latestFeed)},"secondary"));row.append(actions);alerts.append(row)}
+if(changes){let banner=el("p","notice",changes+" watched product price change"+(changes===1?"":"s")+" detected since you saved the watch prices. Verify at retailer before buying.");alerts.prepend(banner)}
+}
+async function checkFeed(){let stamp=$("feedStamp");stamp.textContent="Checking latest published supplier feed…";try{let response=await fetch("./data/prices.json?ts="+Date.now(),{cache:"no-store"});if(!response.ok)throw Error("HTTP "+response.status);latestFeed=await response.json();displayFeed(latestFeed)}catch(e){stamp.textContent="Supplier feed unavailable: "+e.message}}
+
 function fresh(name=""){return {id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),name,qty:1,unit:"each",offers:[{store:"Kent",price:""},{store:"Home Depot",price:""}]}}
 function el(tag,cls,txt){let e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e}
 function field(labelText,value,onChange,type="text"){let l=el("label"),i=el("input");l.append(document.createTextNode(labelText));i.type=type;i.value=value;if(type==="number"){i.min="0";i.step=".01"}i.addEventListener("input",()=>onChange(i.value));l.append(i);return l}
@@ -79,7 +99,7 @@ async function autoCheckPrices(){
  try{
   let response=await fetch("./data/prices.json?ts="+Date.now(),{cache:"no-store"});
   if(!response.ok)throw Error("Price-feed unavailable ("+response.status+")");
-  let feed=await response.json();
+  let feed=latestFeed || await response.json();latestFeed=feed;displayFeed(feed);
   if(!Array.isArray(feed.offers)||!feed.offers.length){status.textContent="Automatic live supplier prices aren't connected yet. A pricing provider and API key must be configured. You can still compare manually entered quotes.";return}
   const checked=feed.updated_at?new Date(feed.updated_at):null;
   const time=checked&&!Number.isNaN(checked.getTime())?checked.toLocaleString():"Unknown";
@@ -102,7 +122,7 @@ async function autoCheckPrices(){
       if(existing)existing.price=String(o.price);else item.offers.push({store:o.store,price:String(o.price)});
       render();status.textContent="Candidate price copied for "+item.name+". Recheck source, local availability and pack size before bidding.";
     },"secondary");
-    row.append(info,link,use);group.append(row);
+    row.append(info,link,use,button("🔔 Watch price",()=>watchListing(o),"secondary"));group.append(row);
    }
    box.append(group);
   }
@@ -148,5 +168,6 @@ for(let trade of Object.keys(trades)){let o=el("option","",trade);o.value=trade;
 fields.forEach(k=>$(k).addEventListener("input",calculate));
 $("add").onclick=()=>{items.push(fresh());render()};$("template").onclick=loadTrade;$("clearitems").onclick=()=>{if(confirm("Remove all materials from this estimate?")){items=[];render()}};$("save").onclick=save;$("csv").onclick=exportCSV;$("print").onclick=()=>print();$("reset").onclick=()=>{if(confirm("Clear this entire project and its saved data?")){localStorage.removeItem("TradeMargin2Estimate");location.reload()}};
 $("autocheck").onclick=autoCheckPrices;
-if(!restore())items=[];render();$("chooser").hidden=false;$("workspace").hidden=true;
+$("checkFeed").onclick=checkFeed;
+if(!restore())items=[];render();$("chooser").hidden=false;$("workspace").hidden=true;checkFeed();
 </script></body></html>
