@@ -1,24 +1,34 @@
 name: Refresh verified supplier prices
 on:
   workflow_dispatch:
+    inputs:
+      suppliers:
+        description: "Optional comma-separated supplier names; blank checks all five"
+        required: false
+        default: ""
 permissions:
   contents: write
 jobs:
   fetch-prices:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
-      - name: Fetch source-linked price listings
+      - name: Check configured supplier catalogues
         env:
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          SUPPLIERS: ${{ inputs.suppliers }}
           RONA_STORE_NUMBER: ${{ vars.RONA_STORE_NUMBER }}
+          HOME_DEPOT_STORE_ID: ${{ vars.HOME_DEPOT_STORE_ID }}
+          CANADIAN_TIRE_STORE_ID: ${{ vars.CANADIAN_TIRE_STORE_ID }}
         run: python3 scripts/refresh_prices.py
-      - name: Commit verified feed
+      - name: Commit source-linked candidate listings
         run: |
           git config user.name "TradeMargin Bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/prices.json
           if ! git diff --cached --quiet; then
-            git commit -m "Refresh supplier price listings"
+            git commit -m "Update supplier price feed"
+            git pull --rebase
             git push
           fi
