@@ -88,10 +88,30 @@ function dimensionMatches(item,offer){let d=item.dimensions||{};if(!d.thickness&
 function el(tag,cls,txt){let e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e}
 function field(labelText,value,onChange,type="text"){let l=el("label"),i=el("input");l.append(document.createTextNode(labelText));i.type=type;i.value=value;if(type==="number"){i.min="0";i.step=".01"}i.addEventListener("input",()=>onChange(i.value));l.append(i);return l}
 function button(label,fn,cls=""){let b=el("button",cls,label);b.type="button";b.onclick=fn;return b}
+function dimensionPicker(label, savedValue, choices, onChange){
+ const wrap=el("div"),lab=el("label","",label),select=el("select");
+ const values=choices.map(x=>Array.isArray(x)?x:[x,x]);
+ const blank=el("option","","Select standard size");blank.value="";select.append(blank);
+ for(const [value,caption] of values){let option=el("option","",caption);option.value=String(value);select.append(option)}
+ const custom=el("option","","Other — type custom size");custom.value="__custom__";select.append(custom);
+ const input=el("input");input.type="text";input.inputMode="decimal";input.placeholder="Enter custom dimension (e.g. 1.5)";input.setAttribute("aria-label",label+" custom value");
+ const known=values.some(([value])=>String(value)===String(savedValue));
+ let isCustom=!!savedValue&&!known;
+ select.value=isCustom?"__custom__":String(savedValue||"");
+ input.value=isCustom?String(savedValue):"";
+ input.hidden=!isCustom;
+ select.onchange=()=>{let customNow=select.value==="__custom__";input.hidden=!customNow;if(customNow){onChange(input.value);input.focus()}else{onChange(select.value)}};
+ input.oninput=()=>onChange(input.value);
+ lab.append(select);wrap.append(lab,input);return wrap
+}
 function render(){let list=$("materials");list.replaceChildren();items.forEach((item)=>{let box=el("article","item"),head=el("div","itemHead"),title=el("h3","",item.name||"New material");head.append(title,button("Remove item",()=>{items=items.filter(x=>x.id!==item.id);render()},"danger"));box.append(head);
 let grid=el("div","grid");grid.append(field("Material / exact specification",item.name,v=>{item.name=v;title.textContent=v||"New material";calculate()}),field("Quantity",item.qty,v=>{item.qty=v;calculate()},"number"),field("Unit",item.unit,v=>{item.unit=v;calculate()}));box.append(grid);
-if(isWood(item)||item.showWoodDimensions){const d=item.dimensions ||= {width:"",thickness:"",length:"",lengthUnit:"ft"};const dimensions=el("div","grid");dimensions.append(field("Wood thickness (inches)",d.thickness||"",v=>{d.thickness=v;calculate()}),field("Wood width (inches)",d.width||"",v=>{d.width=v;calculate()}),field("Wood length",d.length||"",v=>{d.length=v;calculate()}));
-const lengthLabel=el("label","", "Length unit"),lengthSelect=el("select");for(let unit of ["ft","in"]){let opt=el("option","",unit==="ft"?"Feet":"Inches");opt.value=unit;lengthSelect.append(opt)}lengthSelect.value=d.lengthUnit||"ft";lengthSelect.onchange=()=>{d.lengthUnit=lengthSelect.value;calculate()};lengthLabel.append(lengthSelect);dimensions.append(lengthLabel);box.append(dimensions);box.append(el("p","hint","Wood dimensions help filter supplier matches. Enter nominal sizes such as thickness 2, width 6, length 8 ft. Leave blank if unknown."))}
+if(isWood(item)||item.showWoodDimensions){const d=item.dimensions ||= {width:"",thickness:"",length:"",lengthUnit:"ft"};const dimensions=el("div","grid");dimensions.append(
+ dimensionPicker("Wood thickness (inches)",d.thickness||"",[["0.5","½ in"],["0.75","¾ in"],["1","1 in"],["1.25","5/4 in (1¼)"],["1.5","1½ in"],["2","2 in"],["3","3 in"],["4","4 in"],["6","6 in"],["8","8 in"]],v=>{d.thickness=v;calculate()}),
+ dimensionPicker("Wood width (inches)",d.width||"",[["1","1 in"],["2","2 in"],["3","3 in"],["4","4 in"],["5","5 in"],["6","6 in"],["8","8 in"],["10","10 in"],["12","12 in"],["16","16 in"]],v=>{d.width=v;calculate()}),
+ dimensionPicker("Wood length",d.length||"",[["4","4"],["6","6"],["8","8"],["10","10"],["12","12"],["14","14"],["16","16"],["18","18"],["20","20"],["24","24"]],v=>{d.length=v;calculate()})
+);
+const lengthLabel=el("label","", "Length unit"),lengthSelect=el("select");for(let unit of ["ft","in"]){let opt=el("option","",unit==="ft"?"Feet":"Inches");opt.value=unit;lengthSelect.append(opt)}lengthSelect.value=d.lengthUnit||"ft";lengthSelect.onchange=()=>{d.lengthUnit=lengthSelect.value;calculate()};lengthLabel.append(lengthSelect);dimensions.append(lengthLabel);box.append(dimensions);box.append(el("p","hint","Choose a standard size from each dropdown, or select Other to type a custom size. Thickness and width are in inches; length can be feet or inches. Use nominal lumber sizes when appropriate."))}
 if(!isWood(item)&&!item.showWoodDimensions)box.append(button("+ Add wood dimensions",()=>{item.showWoodDimensions=true;render()},"secondary"));
 box.append(button("🔎 Auto-check prices for this material",()=>autoCheckPrices(item.id),"secondary"));
 let offers=el("div","offers");item.offers.forEach((o,j)=>{let row=el("div","offer"),lab=el("label"),sel=el("select");lab.textContent="Supplier";let choices=[...new Set([...vendors,o.store])];choices.forEach(s=>{let opt=el("option","",s);opt.value=s;sel.append(opt)});sel.value=o.store;sel.onchange=()=>{o.store=sel.value;calculate()};lab.append(sel);row.append(lab,field("Price per unit ($)",o.price,v=>{o.price=v;calculate()},"number"));let lookup=el("div");lookup.append(button("Find price ↗",()=>search(item,o),"secondary"));row.append(lookup,button("×",()=>{item.offers.splice(j,1);render()},"danger"));if(o.url){let origin=el("a","hint","Check retailer product ↗");origin.href=o.url;origin.target="_blank";origin.rel="noopener noreferrer";row.append(origin)}offers.append(row)});box.append(offers);box.append(el("div","actions"));box.lastChild.append(button("+ Supplier offer",()=>{item.offers.push({store:"Local supplier",price:""});render()},"secondary"));list.append(box)});calculate()}
