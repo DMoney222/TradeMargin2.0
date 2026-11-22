@@ -16,7 +16,7 @@
 <label>Material markup (%)<input id="markup" type="number" min="0" step=".1" value="15"></label>
 <label>Tax rate (%)<input id="tax" type="number" min="0" step=".1" value="15"></label>
 </div><div class="actions"><button id="template" class="secondary">Load general materials for this trade</button><button id="differentJob" class="secondary">Choose another job type</button></div><p class="hint">Templates contain starter items only. Adjust specifications, quantities and compliance requirements before bidding. Changing trades will not delete your current list.</p></section>
-<section class="card"><h2>2. Materials & supplier offers</h2><div class="actions"><button id="autocheck">🔎 Check available supplier price data</button></div><p id="priceStatus" class="hint" aria-live="polite">Automatic supplier pricing requires a connected price-data provider. Manual comparisons remain available.</p><div id="priceResults"></div><div id="materials" class="materials"></div><div class="actions"><button id="add">+ Add material</button><button id="clearitems" class="secondary">Remove all materials</button></div><p class="hint">Add multiple supplier offers for each material. Blank prices are treated as unquoted, not free. Select matching product grade, package size and units when comparing.</p></section>
+<section class="card"><h2>2. Materials & supplier offers</h2><div class="actions"><button id="autocheck">🔎 Auto-check supplier prices & add to estimate</button></div><p id="priceStatus" class="hint" aria-live="polite">Tap Auto-check to find matching retailer listings and add prices to your estimate. Uses the latest published supplier feed, not an on-demand retailer search.</p><div id="priceResults"></div><div id="materials" class="materials"></div><div class="actions"><button id="add">+ Add material</button><button id="clearitems" class="secondary">Remove all materials</button></div><p class="hint">Add multiple supplier offers for each material. Blank prices are treated as unquoted, not free. Select matching product grade, package size and units when comparing.</p></section>
 <section class="card"><h2>3. Costs of multiple stops</h2><div class="grid">
 <label>Extra time per additional store (hr)<input id="stopHours" type="number" min="0" step=".25" value=".5"></label>
 <label>Your shopping time ($/hr)<input id="shoppingRate" type="number" min="0" step=".01" value="25"></label>
@@ -68,15 +68,34 @@ if(changes){let banner=el("p","notice",changes+" watched product price change"+(
 }
 async function checkFeed(){let stamp=$("feedStamp");stamp.textContent="Checking latest published supplier feed…";try{let response=await fetch("./data/prices.json?ts="+Date.now(),{cache:"no-store"});if(!response.ok)throw Error("HTTP "+response.status);latestFeed=await response.json();displayFeed(latestFeed)}catch(e){stamp.textContent="Supplier feed unavailable: "+e.message}}
 
-function fresh(name=""){return {id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),name,qty:1,unit:"each",offers:[{store:"Kent",price:""},{store:"Home Depot",price:""}]}}
+function fresh(name=""){return {id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),name,qty:1,unit:"each",dimensions:{width:"",thickness:"",length:"",lengthUnit:"ft"},offers:[{store:"Kent",price:""},{store:"Home Depot",price:""}]}}
+function isWood(item){return /board|lumber|joist|stud|post|beam|plank|deck|plywood|sheath|timber|rafter|fascia|trim|sill|strapping|furring|plate|picket|rail|2\\s*[×x]\\s*[4-9]|4\\s*[×x]\\s*4/i.test(item.name||"")}
+function dimensionSummary(item){let d=item.dimensions||{};return [d.thickness?d.thickness+'″ thick':"",d.width?d.width+'″ wide':"",d.length?d.length+' '+(d.lengthUnit||"ft")+' long':""].filter(Boolean).join(", ")}
+function dimensionMatches(item,offer){let d=item.dimensions||{};if(!d.thickness&&!d.width&&!d.length)return true;
+ const name=String(offer.name||"").toLowerCase().replace(/½/g,".5").replace(/¼/g,".25");
+ const normalized=name.replace(/[-–]/g," ").replace(/feet|foot/g,"ft").replace(/inches|inch/g,"in");
+ const numbers=(v)=>String(v).trim().replace(/[^0-9.]/g,"");
+ const dims=[numbers(d.thickness),numbers(d.width)].filter(Boolean);
+ // A product title can list dimensions as 5/4 × 6, 2×4, 1×6 etc.
+ // Avoid treating generic names or no stated dimensions as verified matches.
+ if(dims.length===2){const t=dims[0],w=dims[1];const pair=new RegExp("(^|[^0-9])"+t+"\\s*(?:in|\\\"|\\s)*[x×]\\s*"+w+"(?![0-9])","i");
+ const reverse=new RegExp("(^|[^0-9])"+w+"\\s*(?:in|\\\"|\\s)*[x×]\\s*"+t+"(?![0-9])","i");
+ if(!pair.test(normalized)&&!reverse.test(normalized))return false}
+ else if(dims.length===1){if(!new RegExp("(^|[^0-9])"+dims[0]+"\\s*(?:in|\\\"|[x×]|\\s)","i").test(normalized))return false}
+ if(d.length){const length=numbers(d.length),unit=d.lengthUnit==="in"?"(?:in|\\\"|inches?)":"(?:ft|feet|foot|')";const pattern=new RegExp("(^|[^0-9])"+length+"\\s*"+unit+"(?![a-z0-9])","i");if(!pattern.test(name))return false}
+ return true
+}
 function el(tag,cls,txt){let e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e}
 function field(labelText,value,onChange,type="text"){let l=el("label"),i=el("input");l.append(document.createTextNode(labelText));i.type=type;i.value=value;if(type==="number"){i.min="0";i.step=".01"}i.addEventListener("input",()=>onChange(i.value));l.append(i);return l}
 function button(label,fn,cls=""){let b=el("button",cls,label);b.type="button";b.onclick=fn;return b}
 function render(){let list=$("materials");list.replaceChildren();items.forEach((item)=>{let box=el("article","item"),head=el("div","itemHead"),title=el("h3","",item.name||"New material");head.append(title,button("Remove item",()=>{items=items.filter(x=>x.id!==item.id);render()},"danger"));box.append(head);
-let grid=el("div","grid");grid.append(field("Material / exact specification",item.name,v=>{item.name=v;title.textContent=v||"New material";calculate()}),field("Quantity",item.qty,v=>{item.qty=v;calculate()},"number"),field("Unit",item.unit,v=>{item.unit=v;calculate()}));box.append(grid);
-let offers=el("div","offers");item.offers.forEach((o,j)=>{let row=el("div","offer"),lab=el("label"),sel=el("select");lab.textContent="Supplier";let choices=[...new Set([...vendors,o.store])];choices.forEach(s=>{let opt=el("option","",s);opt.value=s;sel.append(opt)});sel.value=o.store;sel.onchange=()=>{o.store=sel.value;calculate()};lab.append(sel);row.append(lab,field("Price per unit ($)",o.price,v=>{o.price=v;calculate()},"number"));let lookup=el("div");lookup.append(button("Find price ↗",()=>search(item,o),"secondary"));row.append(lookup,button("×",()=>{item.offers.splice(j,1);render()},"danger"));offers.append(row)});box.append(offers);box.append(el("div","actions"));box.lastChild.append(button("+ Supplier offer",()=>{item.offers.push({store:"Local supplier",price:""});render()},"secondary"));list.append(box)});calculate()}
+let grid=el("div","grid");grid.append(field("Material / exact specification",item.name,v=>{item.name=v;title.textContent=v||"New material";render()}),field("Quantity",item.qty,v=>{item.qty=v;calculate()},"number"),field("Unit",item.unit,v=>{item.unit=v;calculate()}));box.append(grid);
+if(isWood(item)){const d=item.dimensions ||= {width:"",thickness:"",length:"",lengthUnit:"ft"};const dimensions=el("div","grid");dimensions.append(field("Wood thickness (inches)",d.thickness||"",v=>{d.thickness=v;calculate()}),field("Wood width (inches)",d.width||"",v=>{d.width=v;calculate()}),field("Wood length",d.length||"",v=>{d.length=v;calculate()}));
+const lengthLabel=el("label","", "Length unit"),lengthSelect=el("select");for(let unit of ["ft","in"]){let opt=el("option","",unit==="ft"?"Feet":"Inches");opt.value=unit;lengthSelect.append(opt)}lengthSelect.value=d.lengthUnit||"ft";lengthSelect.onchange=()=>{d.lengthUnit=lengthSelect.value;calculate()};lengthLabel.append(lengthSelect);dimensions.append(lengthLabel);box.append(dimensions);box.append(el("p","hint","Wood dimensions help filter supplier matches. Enter nominal sizes such as thickness 2, width 6, length 8 ft. Leave blank if unknown."))}
+box.append(button("🔎 Auto-check prices for this material",()=>autoCheckPrices(item.id),"secondary"));
+let offers=el("div","offers");item.offers.forEach((o,j)=>{let row=el("div","offer"),lab=el("label"),sel=el("select");lab.textContent="Supplier";let choices=[...new Set([...vendors,o.store])];choices.forEach(s=>{let opt=el("option","",s);opt.value=s;sel.append(opt)});sel.value=o.store;sel.onchange=()=>{o.store=sel.value;calculate()};lab.append(sel);row.append(lab,field("Price per unit ($)",o.price,v=>{o.price=v;calculate()},"number"));let lookup=el("div");lookup.append(button("Find price ↗",()=>search(item,o),"secondary"));row.append(lookup,button("×",()=>{item.offers.splice(j,1);render()},"danger"));if(o.url){let origin=el("a","hint","Check retailer product ↗");origin.href=o.url;origin.target="_blank";origin.rel="noopener noreferrer";row.append(origin)}offers.append(row)});box.append(offers);box.append(el("div","actions"));box.lastChild.append(button("+ Supplier offer",()=>{item.offers.push({store:"Local supplier",price:""});render()},"secondary"));list.append(box)});calculate()}
 function search(item,offer){let q=[item.name,offer.store,$("city").value,"price Canada"].filter(Boolean).join(" ");window.open("https://www.google.com/search?q="+encodeURIComponent(q),"_blank","noopener,noreferrer")}
-function offersFor(item){return item.offers.filter(o=>String(o.price).trim()!==""&&Number.isFinite(Number(o.price))&&Number(o.price)>=0&&o.store.trim()).map(o=>({store:o.store,price:num(o.price)}))}
+function offersFor(item){return item.offers.filter(o=>String(o.price).trim()!==""&&Number.isFinite(Number(o.price))&&Number(o.price)>=0&&o.store.trim()).map(o=>({store:o.store,price:num(o.price),url:o.url||""}))}
 function optimize(){let valid=items.filter(i=>i.name.trim()&&num(i.qty)>0),missing=valid.filter(i=>offersFor(i).length===0);
 if(!valid.length||missing.length)return {valid,missing};
 const stores=[...new Set(valid.flatMap(i=>offersFor(i).map(o=>o.store)))];
@@ -94,12 +113,12 @@ let table=el("table"),thead=el("tr");["Material","Supplier","Cost"].forEach(v=>t
 for(let p of r.best.picks){let row=el("tr");[p.item.name+" × "+p.item.qty,p.store,money(p.total)].forEach(v=>row.append(el("td","",v)));if(p.url){let a=el("a",""," • Check product ↗");a.href=p.url;a.target="_blank";a.rel="noopener noreferrer";row.children[1].append(a)}table.append(row)}
 plan.replaceChildren(table,el("p","hint","Supplier visits: "+r.best.used.join(" → ")+". "+(r.oneStore?"Best complete one-store option: "+r.oneStore.store+" ("+money(r.oneStore.subtotal)+").":"No single supplier has a price for every material.")));plan.append(el("p","hint","Due diligence: supplier prices are estimates only, including unverified local-store prices. Open each product link to confirm exact specifications, package sizes, availability and checkout prices before bidding or purchasing."));if(r.limited)plan.append(el("p","hint","Over 14 suppliers: approximate optimization used."));
 }
-async function autoCheckPrices(){
+async function autoCheckPrices(onlyId=null){
  const status=$("priceStatus"),box=$("priceResults");box.replaceChildren();status.textContent="Checking TradeMargin's supplier feed…";
  try{
   let response=await fetch("./data/prices.json?ts="+Date.now(),{cache:"no-store"});
   if(!response.ok)throw Error("Price-feed unavailable ("+response.status+")");
-  let feed=latestFeed || await response.json();latestFeed=feed;displayFeed(feed);
+  let feed=await response.json();latestFeed=feed;displayFeed(feed);
   if(!Array.isArray(feed.offers)||!feed.offers.length){status.textContent="Automatic live supplier prices aren't connected yet. A pricing provider and API key must be configured. You can still compare manually entered quotes.";return}
   const checked=feed.updated_at?new Date(feed.updated_at):null;
   const time=checked&&!Number.isNaN(checked.getTime())?checked.toLocaleString():"Unknown";
@@ -108,11 +127,12 @@ async function autoCheckPrices(){
   const norm=t=>String(t||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
   const stop=new Set(["the","and","with","for","each","one","inch","in","ft","feet","board","unit","pack","box","of"]);
   for(let item of items){
+   if(onlyId&&item.id!==onlyId)continue;
    const terms=norm(item.name).split(" ").filter(w=>w.length>2&&!stop.has(w));if(!terms.length)continue;
-   let matches=feed.offers.map(o=>({o,score:terms.filter(t=>norm(o.name).split(" ").includes(t)).length})).filter(v=>v.score>=Math.min(2,terms.length)).sort((a,b)=>b.score-a.score||a.o.price-b.o.price).slice(0,5);
+   let matches=feed.offers.map(o=>({o,score:terms.filter(t=>norm(o.name).split(" ").includes(t)).length})).filter(v=>v.score>=Math.min(2,terms.length)&&dimensionMatches(item,v.o)).sort((a,b)=>b.score-a.score||a.o.price-b.o.price).slice(0,5);
    if(!matches.length)continue;
    total+=matches.length;
-   const group=el("div","item"),title=el("h3","",item.name+" — supplier price options");group.append(title);
+   const group=el("div","item"),title=el("h3","",item.name+(dimensionSummary(item)?" ("+dimensionSummary(item)+")":"")+" — supplier price options");group.append(title);
    for(let {o} of matches){
     const row=el("div","actions"),info=el("span","hint",o.store+" • "+o.name+" • "+money(o.price)+" • "+(o.location||"Location unknown"));
     const link=el("a","", "View source ↗");link.href=o.url;link.target="_blank";link.rel="noopener noreferrer";link.style.alignSelf="center";
@@ -127,13 +147,13 @@ async function autoCheckPrices(){
    }
    box.append(group);
   }
-  if(!total)box.append(el("p","hint","No likely matches to your exact material descriptions were found in the available feed. Try more specific product names or manual supplier quotes."));
+  if(!total)box.append(el("p","hint","No matches found in the latest supplier feed for these descriptions and dimensions. The feed only includes products from past scheduled/manual collections, so some materials may be missing. Try adjusting the item name or use manual supplier quotes."));
  }catch(err){status.textContent="Unable to check supplier feed: "+err.message+". Manual price entry still works."}
 }
 function loadTrade(){let names=trades[$("trade").value]||[];if(items.length&&!confirm("Replace your current material list with this trade's starter items?"))return;items=names.map(fresh);render();$("status").textContent="Loaded starter materials. Enter exact quantities and prices; nothing is priced automatically."}
 function save(){try{localStorage.setItem("TradeMargin2Estimate",JSON.stringify({v:2,fields:Object.fromEntries(fields.map(k=>[k,$(k).value])),items}));$("status").textContent="Saved in this browser on this device."}catch(e){$("status").textContent="Unable to save in this browser."}}
 function restore(){try{let d=JSON.parse(localStorage.getItem("TradeMargin2Estimate"));if(!d)return false;for(let k of fields){if(d.fields?.[k]!==undefined)$(k).value=d.fields[k]}if(d.v===2){items=d.items||[];return true}items=(d.items||[]).map(i=>({...fresh(i.name),qty:i.qty,unit:i.unit,offers:[{store:i.store||"Local supplier",price:i.low},{store:"One-stop comparison",price:i.one}]}));return true}catch(e){return false}}
-function exportCSV(){let lines=[["Project","Trade","Material","Qty","Unit","Supplier","Price per unit (CAD)"]];for(let i of items)for(let o of i.offers)lines.push([$("project").value,$("trade").value,i.name,i.qty,i.unit,o.store,o.price]);let contents=lines.map(row=>row.map(x=>'"'+String(x??"").replaceAll('"','""')+'"').join(",")).join("\r\n");let url=URL.createObjectURL(new Blob([contents],{type:"text/csv;charset=utf-8"})),a=el("a");a.href=url;a.download="trademargin-offers.csv";a.click();setTimeout(()=>URL.revokeObjectURL(url),1500)}
+function exportCSV(){let lines=[["Project","Trade","Material","Thickness (in)","Width (in)","Length","Length unit","Qty","Unit","Supplier","Price per unit (CAD)","Product URL"]];for(let i of items)for(let o of i.offers)lines.push([$("project").value,$("trade").value,i.name,i.dimensions?.thickness||"",i.dimensions?.width||"",i.dimensions?.length||"",i.dimensions?.lengthUnit||"ft",i.qty,i.unit,o.store,o.price,o.url||""]);let contents=lines.map(row=>row.map(x=>'"'+String(x??"").replaceAll('"','""')+'"').join(",")).join("\r\n");let url=URL.createObjectURL(new Blob([contents],{type:"text/csv;charset=utf-8"})),a=el("a");a.href=url;a.download="trademargin-offers.csv";a.click();setTimeout(()=>URL.revokeObjectURL(url),1500)}
 
 const jobTypes={
 "Carpentry & Decks":{"Deck building":["Deck boards","Deck joists","Pressure-treated posts","Deck screws","Joist hangers","Railing","Concrete deck blocks"],"Framing":["2×4 studs","Top and bottom plates","Sheathing 4×8","Framing nails","Header lumber","Construction adhesive"],"Fence":["Fence posts","Fence boards","Fence rails","Post concrete","Exterior screws"],"Trim & finishing":["Baseboard","Door casing","Finish nails","Wood filler","Caulking"]},
