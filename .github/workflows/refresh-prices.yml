@@ -2,6 +2,11 @@ name: Refresh verified supplier prices
 on:
   workflow_dispatch:
     inputs:
+      query:
+        description: "Single product to search fresh (optional). Example: 2x6 pressure-treated lumber 8 ft"
+        required: false
+        type: string
+        default: ""
       suppliers:
         description: "Optional comma-separated supplier names; blank checks all five"
         required: false
@@ -18,6 +23,7 @@ jobs:
         env:
           APIFY_TOKEN: ${{ secrets.API_TOKEN }}
           SUPPLIERS: ${{ inputs.suppliers }}
+          PRICE_QUERY: ${{ inputs.query }}
           RONA_STORE_NUMBER: ${{ vars.RONA_STORE_NUMBER }}
           HOME_DEPOT_STORE_ID: ${{ vars.HOME_DEPOT_STORE_ID }}
           CANADIAN_TIRE_STORE_ID: ${{ vars.CANADIAN_TIRE_STORE_ID }}
