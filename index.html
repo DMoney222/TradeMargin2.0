@@ -77,10 +77,11 @@ function itemType(value){
  if(/paddle.board|kayak|inflatable|tech deck|board display/.test(t))return "irrelevant";
  if(/deck/.test(t)&&/board|plank|decking/.test(t))return "deck-board";
  if(/deck/.test(t)&&/screw/.test(t))return "deck-screws";
+ if(/screwgun|screw gun|drill|driver|power tool/.test(t))return "power-tool";
  if(/drywall/.test(t)&&/screw/.test(t))return "drywall-screws";
  if(/drywall|gypsum/.test(t)&&/sheet|panel|board/.test(t))return "drywall-sheet";
+ if(/pex/.test(t)&&/elbow|coupling|tee|adapter|fitting|valve|connector/.test(t))return "pex-fitting";
  if(/pex/.test(t)&&/pipe|tubing/.test(t))return "pex-pipe";
- if(/pex/.test(t)&&/elbow|coupling|tee|adapter|fitting/.test(t))return "pex-fitting";
  if(/14\s*[/\-]\s*2/.test(t)&&/wire|cable|romex|nmd90|ac90/.test(t))return "14-2-wire";
  if(/primer/.test(t))return "primer";
  if(/shingle/.test(t))return "shingles";
