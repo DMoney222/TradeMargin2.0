@@ -82,7 +82,7 @@ if(!valid.length||missing.length)return {valid,missing};
 const stores=[...new Set(valid.flatMap(i=>offersFor(i).map(o=>o.store)))];
 const stopCost=num($("stopHours").value)*num($("shoppingRate").value)+num($("fuel").value)+num($("other").value);
 let best=null;
-function assess(allowed){let picks=[],subtotal=0;for(let item of valid){let available=offersFor(item).filter(o=>allowed.includes(o.store)).sort((a,b)=>a.price-b.price);if(!available.length)return;let pick=available[0];picks.push({item,store:pick.store,unitPrice:pick.price,total:num(item.qty)*pick.price});subtotal+=num(item.qty)*pick.price}let used=[...new Set(picks.map(p=>p.store))],cost=subtotal+Math.max(0,used.length-1)*stopCost;if(!best||cost<best.cost)best={picks,used,subtotal,cost,stopCost}}
+function assess(allowed){let picks=[],subtotal=0;for(let item of valid){let available=offersFor(item).filter(o=>allowed.includes(o.store)).sort((a,b)=>a.price-b.price);if(!available.length)return;let pick=available[0];picks.push({item,store:pick.store,unitPrice:pick.price,total:num(item.qty)*pick.price,url:pick.url||""});subtotal+=num(item.qty)*pick.price}let used=[...new Set(picks.map(p=>p.store))],cost=subtotal+Math.max(0,used.length-1)*stopCost;if(!best||cost<best.cost)best={picks,used,subtotal,cost,stopCost}}
 if(stores.length<=14){for(let mask=1;mask<(1<<stores.length);mask++){let allowed=stores.filter((s,j)=>mask&(1<<j));assess(allowed)}}else{let allowed=[...stores];assess(allowed);for(let s of stores)assess([s]);}
 let oneStore=null;for(let s of stores){let prices=valid.map(i=>offersFor(i).find(o=>o.store===s));if(prices.every(Boolean)){let sub=valid.reduce((sum,i,j)=>sum+num(i.qty)*prices[j].price,0);if(!oneStore||sub<oneStore.subtotal)oneStore={store:s,subtotal:sub}}}
 return {valid,missing,best,oneStore,stopCost,limited:stores.length>14}}
@@ -91,8 +91,8 @@ if(!r.best){addStat("Materials priced",r.valid.length-r.missing.length+" / "+r.v
 let labor=num($("hours").value)*num($("rate").value),markup=r.best.subtotal*num($("markup").value)/100,other=num($("projectCosts").value),subtotal=r.best.cost+markup+labor+other,tax=subtotal*num($("tax").value)/100,savings=r.oneStore?r.oneStore.subtotal-r.best.cost:null;
 addStat("Material subtotal",money(r.best.subtotal));addStat("Extra-store cost",money(r.best.cost-r.best.subtotal));addStat("Supplier stops",String(r.best.used.length));addStat("Savings vs. best one-store choice",savings===null?"No comparison":money(savings),savings>0?"good":savings<0?"bad":"");addStat("Labour billed",money(labor));addStat("Customer estimate incl. tax",money(subtotal+tax),"good");
 let table=el("table"),thead=el("tr");["Material","Supplier","Cost"].forEach(v=>thead.append(el("th","",v)));table.append(thead);
-for(let p of r.best.picks){let row=el("tr");[p.item.name+" × "+p.item.qty,p.store,money(p.total)].forEach(v=>row.append(el("td","",v)));table.append(row)}
-plan.replaceChildren(table,el("p","hint","Supplier visits: "+r.best.used.join(" → ")+". "+(r.oneStore?"Best complete one-store option: "+r.oneStore.store+" ("+money(r.oneStore.subtotal)+").":"No single supplier has a price for every material.")));if(r.limited)plan.append(el("p","hint","Over 14 suppliers: approximate optimization used."));
+for(let p of r.best.picks){let row=el("tr");[p.item.name+" × "+p.item.qty,p.store,money(p.total)].forEach(v=>row.append(el("td","",v)));if(p.url){let a=el("a",""," • Check product ↗");a.href=p.url;a.target="_blank";a.rel="noopener noreferrer";row.children[1].append(a)}table.append(row)}
+plan.replaceChildren(table,el("p","hint","Supplier visits: "+r.best.used.join(" → ")+". "+(r.oneStore?"Best complete one-store option: "+r.oneStore.store+" ("+money(r.oneStore.subtotal)+").":"No single supplier has a price for every material.")));plan.append(el("p","hint","Due diligence: supplier prices are estimates only, including unverified local-store prices. Open each product link to confirm exact specifications, package sizes, availability and checkout prices before bidding or purchasing."));if(r.limited)plan.append(el("p","hint","Over 14 suppliers: approximate optimization used."));
 }
 async function autoCheckPrices(){
  const status=$("priceStatus"),box=$("priceResults");box.replaceChildren();status.textContent="Checking TradeMargin's supplier feed…";
@@ -103,7 +103,7 @@ async function autoCheckPrices(){
   if(!Array.isArray(feed.offers)||!feed.offers.length){status.textContent="Automatic live supplier prices aren't connected yet. A pricing provider and API key must be configured. You can still compare manually entered quotes.";return}
   const checked=feed.updated_at?new Date(feed.updated_at):null;
   const time=checked&&!Number.isNaN(checked.getTime())?checked.toLocaleString():"Unknown";
-  status.textContent="Supplier feed: "+feed.provider+" • updated "+time+". These are candidate prices, not confirmed local quotes. Check the exact product, unit, store and availability before choosing where to shop.";
+  status.textContent="Supplier prices last checked: "+time+". You may use retailer-linked prices for estimates, including unverified local-store prices. Due diligence: open each product link and confirm the item, package quantity, current price, local availability and pickup/delivery before quoting or buying.";
   let total=0;
   const norm=t=>String(t||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
   const stop=new Set(["the","and","with","for","each","one","inch","in","ft","feet","board","unit","pack","box","of"]);
@@ -112,17 +112,18 @@ async function autoCheckPrices(){
    let matches=feed.offers.map(o=>({o,score:terms.filter(t=>norm(o.name).split(" ").includes(t)).length})).filter(v=>v.score>=Math.min(2,terms.length)).sort((a,b)=>b.score-a.score||a.o.price-b.o.price).slice(0,5);
    if(!matches.length)continue;
    total+=matches.length;
-   const group=el("div","item"),title=el("h3","",item.name+" — possible matches (verify exact product)");group.append(title);
+   const group=el("div","item"),title=el("h3","",item.name+" — supplier price options");group.append(title);
    for(let {o} of matches){
     const row=el("div","actions"),info=el("span","hint",o.store+" • "+o.name+" • "+money(o.price)+" • "+(o.location||"Location unknown"));
     const link=el("a","", "View source ↗");link.href=o.url;link.target="_blank";link.rel="noopener noreferrer";link.style.alignSelf="center";
-    const use=button(o.store_verified?"Use after verifying":"Use unverified price",()=>{
-      if(!confirm("Have you checked the retailer link to confirm this is the exact product, quantity/unit, correct local store, and current available price? "+o.name+(o.store_verified?"":" WARNING: store location NOT verified.") ))return;
+    const use=button("Use this price",()=>{
       let existing=item.offers.find(x=>x.store===o.store);
-      if(existing)existing.price=String(o.price);else item.offers.push({store:o.store,price:String(o.price)});
-      render();status.textContent="Candidate price copied for "+item.name+". Recheck source, local availability and pack size before bidding.";
+      const offer={store:o.store,price:String(o.price),url:o.url,sourceName:o.name,checkedAt:o.checked_at||feed.updated_at,location:o.location||"Store not verified",storeVerified:!!o.store_verified};
+      if(existing)Object.assign(existing,offer);else item.offers.push(offer);
+      render();status.textContent="Added "+money(o.price)+" from "+o.store+" to "+item.name+". Due diligence: open the source link and verify product specs, package size, availability and checkout price before quoting or buying.";
     },"secondary");
     row.append(info,link,use,button("🔔 Watch price",()=>watchListing(o),"secondary"));group.append(row);
+    const note=el("p","hint","Due diligence: check the linked retailer listing for the exact product, quantity, current checkout price and your local store's stock. "+(o.store_verified?"Store selection supplied by scraper; still confirm availability.":"Store/location not verified. Online stock is not confirmed by this listing."));group.append(note);
    }
    box.append(group);
   }
