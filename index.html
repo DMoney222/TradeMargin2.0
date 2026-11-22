@@ -100,6 +100,16 @@ function lumberDimensions(name){
  if(!m)return null;
  return {thickness: m[1]==="5/4"?1.25:Number(m[1]),width:Number(m[2]),length:Number(m[3])};
 }
+function packageDescription(name){
+ const t=String(name||"");
+ const count=t.match(/\b(\d[\d,]*)\s*(?:-|\s)?(?:pieces|pcs|pk|pack|per\s*pack)\b/i);
+ if(count)return "Package: "+count[1].replace(/,/g,"")+" pieces";
+ const wire=t.match(/\b(\d+(?:\.\d+)?)\s*(m|metres?|ft|feet)\s*(?:\/roll|roll)?\b/i);
+ if(wire)return "Listed length: "+wire[1]+" "+wire[2];
+ const volume=t.match(/\b(\d+(?:\.\d+)?)\s*(ml|l|gallon|litres?)\b/i);
+ if(volume)return "Container: "+volume[1]+" "+volume[2];
+ return "Package size not confirmed — check listing";
+}
 function classifyMatch(item,offer){
  const query=String(item.name||""),name=String(offer.name||"");
  const wanted=itemType(query),product=itemType(name);
@@ -201,7 +211,7 @@ async function autoCheckPrices(onlyId=null){
    total+=matches.length;
    const group=el("div","item"),title=el("h3","",item.name+(dimensionSummary(item)?" ("+dimensionSummary(item)+")":"")+" — supplier price options");group.append(title);
    for(let {o,warnings} of matches){
-    const row=el("div","actions"),info=el("span","hint",o.store+" • "+o.name+" • "+money(o.price)+" • "+(o.location||"Location unknown")+(warnings.length?" • ⚠️ Verify listing":""));
+    const row=el("div","actions"),info=el("span","hint",o.store+" • "+o.name+" • "+money(o.price)+" • "+packageDescription(o.name)+" • "+(o.location||"Location unknown")+(warnings.length?" • ⚠️ Verify listing":""));
     const link=el("a","", "View source ↗");link.href=o.url;link.target="_blank";link.rel="noopener noreferrer";link.style.alignSelf="center";
     const use=button("Use this price",()=>{
       if(warnings.some(w=>w.includes("Unusually high"))&&!confirm("This price may be for a bundle or wrong item. Confirm packaging on the retailer's page before using it."))return;
