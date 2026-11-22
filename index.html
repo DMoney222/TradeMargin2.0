@@ -16,7 +16,7 @@
 <label>Material markup (%)<input id="markup" type="number" min="0" step=".1" value="15"></label>
 <label>Tax rate (%)<input id="tax" type="number" min="0" step=".1" value="15"></label>
 </div><div class="actions"><button id="template" class="secondary">Load general materials for this trade</button><button id="differentJob" class="secondary">Choose another job type</button></div><p class="hint">Templates contain starter items only. Adjust specifications, quantities and compliance requirements before bidding. Changing trades will not delete your current list.</p></section>
-<section class="card"><h2>2. Materials & supplier offers</h2><div class="actions"><button id="autocheck">🔎 Search saved supplier prices & add to estimate</button></div><p id="priceStatus" class="hint" aria-live="polite">Search existing retailer listings and add prices immediately. For a brand-new price lookup on one item, tap Request fresh price check on that material. A fresh search requires starting a GitHub workflow with your Apify credits.</p><div id="priceResults"></div><div id="materials" class="materials"></div><div class="actions"><button id="add">+ Add material</button><button id="clearitems" class="secondary">Remove all materials</button></div><p class="hint">Add multiple supplier offers for each material. Blank prices are treated as unquoted, not free. Select matching product grade, package size and units when comparing.</p></section>
+<section class="card"><h2>2. Materials & supplier offers</h2><div class="actions"><button id="autocheck">🔎 Find supplier prices & add to estimate</button></div><p id="priceStatus" class="hint" aria-live="polite">Tap Find prices for this material to see matching products and prices here, then tap Use this price to add them to the estimate. Prices come from the latest collected supplier listings; this is not a fresh live retailer search.</p><div id="priceResults"></div><div id="materials" class="materials"></div><div class="actions"><button id="add">+ Add material</button><button id="clearitems" class="secondary">Remove all materials</button></div><p class="hint">Add multiple supplier offers for each material. Blank prices are treated as unquoted, not free. Select matching product grade, package size and units when comparing.</p></section>
 <section class="card"><h2>3. Costs of multiple stops</h2><div class="grid">
 <label>Extra time per additional store (hr)<input id="stopHours" type="number" min="0" step=".25" value=".5"></label>
 <label>Your shopping time ($/hr)<input id="shoppingRate" type="number" min="0" step=".01" value="25"></label>
@@ -115,32 +115,9 @@ const lengthLabel=el("label","", "Length unit"),lengthSelect=el("select");for(le
 if(!isWood(item)&&!item.showWoodDimensions)box.append(button("+ Add wood dimensions",()=>{item.showWoodDimensions=true;render()},"secondary"));
 const priceButtons=el("div","actions");
 priceButtons.append(
- button("🔎 Check saved supplier prices",()=>autoCheckPrices(item.id),"secondary"),
- button("🌐 Request fresh price check",()=>requestFreshPrice(item),"secondary")
+ button("🔎 Find prices for this material",()=>autoCheckPrices(item.id),"secondary")
 );box.append(priceButtons);
 let offers=el("div","offers");item.offers.forEach((o,j)=>{let row=el("div","offer"),lab=el("label"),sel=el("select");lab.textContent="Supplier";let choices=[...new Set([...vendors,o.store])];choices.forEach(s=>{let opt=el("option","",s);opt.value=s;sel.append(opt)});sel.value=o.store;sel.onchange=()=>{o.store=sel.value;calculate()};lab.append(sel);row.append(lab,field("Price per unit ($)",o.price,v=>{o.price=v;calculate()},"number"));let lookup=el("div");lookup.append(button("Find price ↗",()=>search(item,o),"secondary"));row.append(lookup,button("×",()=>{item.offers.splice(j,1);render()},"danger"));if(o.url){let origin=el("a","hint","Check retailer product ↗");origin.href=o.url;origin.target="_blank";origin.rel="noopener noreferrer";row.append(origin)}offers.append(row)});box.append(offers);box.append(el("div","actions"));box.lastChild.append(button("+ Supplier offer",()=>{item.offers.push({store:"Local supplier",price:""});render()},"secondary"));list.append(box)});calculate()}
-function freshPriceQuery(item){
- const d=item.dimensions||{};
- const dims=[d.thickness&&d.width?d.thickness+"x"+d.width:d.thickness||d.width,d.length?d.length+(d.lengthUnit||"ft"):""].filter(Boolean).join(" ");
- return (item.name+" "+dims).trim().slice(0,160)
-}
-async function requestFreshPrice(item){
- const query=freshPriceQuery(item);
- if(!query){alert("Enter a material name first.");return}
- const url="https://github.com/DMoney222/TradeMargin2.0/actions/workflows/refresh-prices.yml";
- const note=$("priceStatus");
- let copied=false;
- try{await navigator.clipboard.writeText(query);copied=true}catch(e){}
- note.textContent=(copied?"Search text copied: ":"Copy this exact search text: ")+query+". Open the GitHub price-check page and choose Run workflow. Paste it into the query field. Leave suppliers blank for Home Depot + Canadian Tire. Once the workflow is green, return and click Auto-check prices for this material.";
- const panel=$("priceResults");panel.replaceChildren();
- const card=el("div","item"),title=el("h3","","Request a NEW supplier price check"),p=el("p","hint", "Your GitHub account must start this search, because it uses your private Apify token and can spend credits. The website cannot run paid API calls directly.");
- const label=el("label","", "Product search text");
- const input=el("input");input.value=query;input.readOnly=true;label.append(input);
- const link=el("a","","Open GitHub — Run workflow ↗");link.href=url;link.target="_blank";link.rel="noopener noreferrer";
- const copy=button("Copy search text",async()=>{try{await navigator.clipboard.writeText(input.value);note.textContent="Copied. Paste into GitHub's query box."}catch(e){input.focus();input.select();note.textContent="Select and copy the highlighted search text."}},"secondary");
- card.append(title,p,label,el("p","hint","In GitHub: Run workflow → query → paste search text → Run workflow. Return here when the run turns green."),link,copy);
- panel.append(card);panel.scrollIntoView({behavior:"smooth",block:"start"});
-}
 function search(item,offer){let q=[item.name,offer.store,$("city").value,"price Canada"].filter(Boolean).join(" ");window.open("https://www.google.com/search?q="+encodeURIComponent(q),"_blank","noopener,noreferrer")}
 function offersFor(item){return item.offers.filter(o=>String(o.price).trim()!==""&&Number.isFinite(Number(o.price))&&Number(o.price)>=0&&o.store.trim()).map(o=>({store:o.store,price:num(o.price),url:o.url||""}))}
 function optimize(){let valid=items.filter(i=>i.name.trim()&&num(i.qty)>0),missing=valid.filter(i=>offersFor(i).length===0);
