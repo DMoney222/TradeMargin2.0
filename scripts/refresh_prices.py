@@ -42,7 +42,7 @@ SUPPLIERS = {
     },
     "Home Hardware": {
         "actor": "loudtzu~home-hardware-product-search",
-        "keyword_field": "keywords", "domain": "homehardware.ca",
+        "keyword_field": None, "domain": "homehardware.ca",
         "store_env": None,
     },
     "Canadian Tire": {
@@ -84,7 +84,7 @@ def normalize_rows(supplier, config, rows, store_id, checked_at):
     for row in rows:
         if not isinstance(row, dict):
             continue
-        name = next((row.get(k) for k in ("name", "title", "productName")
+        name = next((row.get(k) for k in ("name", "title", "productName", "product")
                      if isinstance(row.get(k), str) and row.get(k).strip()), None)
         url = next((row.get(k) for k in ("url", "productUrl", "product_url", "link")
                     if is_valid_product_url(row.get(k), config["domain"])), None)
@@ -107,8 +107,13 @@ def normalize_rows(supplier, config, rows, store_id, checked_at):
     return result
 
 def api_call(token, config, terms, store_id):
-    body = {config["keyword_field"]: terms,
-            "maxItems": min(MAX_PER_SUPPLIER, max(5, len(terms) * 3))}
+    body = {"maxItems": min(MAX_PER_SUPPLIER, max(5, len(terms) * 3))}
+    if config["keyword_field"]:
+        body[config["keyword_field"]] = terms
+    else:
+        # This Home Hardware actor supports category URLs only.
+        # Do not waste credits by sending unsupported keyword searches.
+        raise ValueError("Home Hardware requires category URLs; keyword search is unsupported")
     supplier_actor = config["actor"]
     if supplier_actor.startswith("fayoussef~"):
         body.update({"keywordMatchesOnly": True, "productDetails": False})
