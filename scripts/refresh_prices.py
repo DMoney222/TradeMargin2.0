@@ -156,7 +156,44 @@ def collect(token, selected=None, runner=api_call):
     if not all_offers:
         raise RuntimeError("No source-linked CAD offers from any supplier; existing feed unchanged. " +
                            json.dumps(statuses))
+    # Compare only the same source product at the same store scope. Never
+    # call a missing product a price change, or compare prices across stores.
+    previous = {}
+    if OUTPUT.exists():
+        try:
+            old = json.loads(OUTPUT.read_text(encoding="utf-8"))
+            for row in old.get("offers", []):
+                key = (row.get("store"), row.get("url"), row.get("location"))
+                if key[0] and key[1]:
+                    previous[key] = row
+        except (ValueError, OSError):
+            pass
+    changes = []
+    for row in all_offers:
+        key = (row["store"], row["url"], row["location"])
+        older = previous.get(key)
+        if not older:
+            continue
+        try:
+            before = float(older["price"])
+        except (ValueError, TypeError, KeyError):
+            continue
+        after = float(row["price"])
+        if round(before, 2) == round(after, 2):
+            continue
+        change = {
+            "store": row["store"], "name": row["name"], "url": row["url"],
+            "location": row["location"], "previous_price": before,
+            "new_price": after, "difference": round(after - before, 2),
+            "previous_checked_at": older.get("checked_at", old.get("updated_at")),
+            "checked_at": checked_at,
+        }
+        row["previous_price"] = before
+        row["price_change"] = change["difference"]
+        changes.append(change)
     data = {
+        "changes": changes,
+        "change_count": len(changes),
         "updated_at": checked_at,
         "location": "Store-local only when explicit store ID configured",
         "provider": "Independent Apify actors (not retailer partnerships)",
