@@ -16,7 +16,7 @@
 <label>Material markup (%)<input id="markup" type="number" min="0" step=".1" value="15"></label>
 <label>Tax rate (%)<input id="tax" type="number" min="0" step=".1" value="15"></label>
 </div><div class="actions"><button id="template" class="secondary">Load general materials for this trade</button><button id="differentJob" class="secondary">Choose another job type</button></div><p class="hint">Templates contain starter items only. Adjust specifications, quantities and compliance requirements before bidding. Changing trades will not delete your current list.</p></section>
-<section class="card"><h2>2. Materials & supplier offers</h2><div class="actions"><button id="autocheck">🔎 Find supplier prices & add to estimate</button></div><p id="priceStatus" class="hint" aria-live="polite">Search each material separately. Results from the supplier feed and independent web-research feed appear underneath the material, grouped by supplier. Web research must be run separately through the GitHub workflow; this button does not initiate a live internet search.</p><div id="priceResults"></div><div id="materials" class="materials"></div><div class="actions"><button id="add">+ Add material</button><button id="clearitems" class="secondary">Remove all materials</button></div><p class="hint">Add multiple supplier offers for each material. Blank prices are treated as unquoted, not free. Select matching product grade, package size and units when comparing.</p></section>
+<section class="card"><h2>2. Materials & supplier offers</h2><div class="actions"><button id="autocheck">🔎 Find supplier prices & add to estimate</button></div><p id="priceStatus" class="hint" aria-live="polite">Search one material at a time. Beneath it, choose a supplier to search Google in Safari for your exact dimensions, then enter the product price and link here. Existing matching supplier prices appear automatically when available.</p><div id="priceResults"></div><div id="materials" class="materials"></div><div class="actions"><button id="add">+ Add material</button><button id="clearitems" class="secondary">Remove all materials</button></div><p class="hint">Add multiple supplier offers for each material. Blank prices are treated as unquoted, not free. Select matching product grade, package size and units when comparing.</p></section>
 <section class="card"><h2>3. Costs of multiple stops</h2><div class="grid">
 <label>Extra time per additional store (hr)<input id="stopHours" type="number" min="0" step=".25" value=".5"></label>
 <label>Your shopping time ($/hr)<input id="shoppingRate" type="number" min="0" step=".01" value="25"></label>
@@ -209,6 +209,41 @@ for(let p of r.best.picks){let row=el("tr");[p.item.name+" × "+p.item.qty,p.sto
 plan.replaceChildren(table,el("p","hint","Supplier visits: "+r.best.used.join(" → ")+". "+(r.oneStore?"Best complete one-store option: "+r.oneStore.store+" ("+money(r.oneStore.subtotal)+").":"No single supplier has a price for every material.")));plan.append(el("p","hint","Due diligence: supplier prices are estimates only, including unverified local-store prices. Open each product link to confirm exact specifications, package sizes, availability and checkout prices before bidding or purchasing."));if(r.limited)plan.append(el("p","hint","Over 14 suppliers: approximate optimization used."));
 }
 
+function googleProductQuery(item,store){
+ const sites={"Kent":"kent.ca","Home Depot Canada":"homedepot.ca","RONA":"rona.ca","Home Hardware":"homehardware.ca","Canadian Tire":"canadiantire.ca"};
+ const d=item.dimensions||{};
+ let parts=[item.name];
+ if(itemType(item.name)==="deck-board"){
+   const treatment=boardMaterial(item);
+   parts.push(treatment==="pressure-treated"?"pressure treated lumber":treatment==="composite"?"composite decking":"untreated wood");
+ }
+ if(d.thickness&&d.width)parts.push(d.thickness+" x "+d.width+" inches");
+ else if(d.thickness||d.width)parts.push((d.thickness||d.width)+" inches");
+ if(d.length)parts.push(d.length+" "+(d.lengthUnit==="in"?"inches":"ft"));
+ parts.push("price CAD");
+ return "site:"+sites[store]+" "+parts.filter(Boolean).join(" ");
+}
+function googleProductUrl(item,store){
+ return "https://www.google.com/search?q="+encodeURIComponent(googleProductQuery(item,store));
+}
+function addManuallyResearchedPrice(item,store,price,url){
+ const numeric=Number(price);
+ if(!Number.isFinite(numeric)||numeric<=0||numeric>1000000)return "Enter a valid positive CAD price.";
+ const source=(url||"").trim();
+ if(source){
+   try{
+     const parsed=new URL(source);
+     const domains={"Kent":"kent.ca","Home Depot Canada":"homedepot.ca","RONA":"rona.ca","Home Hardware":"homehardware.ca","Canadian Tire":"canadiantire.ca"};
+     const site=domains[store];
+     if(parsed.protocol!=="https:"||!(parsed.hostname===site||parsed.hostname.endsWith("."+site)))return "Paste the retailer's own product link, not a Google search URL.";
+   }catch(e){return "Enter a complete HTTPS product link or leave it blank."}
+ }
+ const offer={store,price:numeric.toFixed(2),url:source,sourceName:"Price manually checked in retailer listing",checkedAt:new Date().toISOString(),location:"Not store-verified",storeVerified:false};
+ let existing=item.offers.find(o=>o.store===store);
+ if(existing)Object.assign(existing,offer);else item.offers.push(offer);
+ render();$("priceStatus").textContent="Added "+money(numeric)+" from "+store+" to "+item.name+". Manually researched price: verify pack size, product dimensions and final checkout price.";
+ return null;
+}
 function showItemPriceResults(item,holder){
  holder.replaceChildren();
  const payload=searchResultsById.get(item.id);
@@ -223,8 +258,11 @@ function showItemPriceResults(item,holder){
    const matches=payload.byStore[store]||[];
    const card=el("div","item"),h=el("h4","",store);
    card.append(h);
-   if(!matches.length){card.append(el("p","hint","No matching product found for this supplier. Not priced."));holder.append(card);continue}
-   found+=matches.length;
+   const search=el("a","secondary","🔎 Search "+store+" on Google / Safari ↗");
+   search.href=googleProductUrl(item,store);search.target="_blank";search.rel="noopener noreferrer";
+   card.append(search,el("p","hint","Google search is restricted to "+store+"'s website and includes this item's dimensions. Open the result in Safari, check the product and price, then return here."));
+   if(!matches.length){card.append(el("p","hint","No verified match in the collected data. You can still research it on Google and enter its price below."));}
+   if(matches.length){found+=matches.length;
    const label=el("label","", "Matching product — "+store),select=el("select");
    matches.forEach((entry,j)=>{const opt=el("option","",entry.o.name+" — "+money(entry.o.price)+" ("+packageDescription(entry.o.name)+")");opt.value=String(j);select.append(opt)});
    label.append(select);
@@ -249,10 +287,21 @@ function showItemPriceResults(item,holder){
    };
    select.addEventListener("change",updateSelection);updateSelection();
    card.append(label,info,link,choose);
+   }
+   const manual=el("div","grid");
+   const entered=el("input");entered.type="number";entered.min="0.01";entered.step="0.01";entered.placeholder="Price CAD ($)";entered.setAttribute("aria-label",store+" researched price");
+   const productLink=el("input");productLink.type="url";productLink.placeholder="https:// product link (recommended)";productLink.setAttribute("aria-label",store+" product link");
+   const priceLabel=el("label","", "Price from Google result (CAD)"),linkLabel=el("label","", "Retailer product link");
+   priceLabel.append(entered);linkLabel.append(productLink);manual.append(priceLabel,linkLabel);
+   const message=el("p","hint","");
+   card.append(manual,button("Use researched price from "+store,()=>{
+     const error=addManuallyResearchedPrice(item,store,entered.value,productLink.value);
+     if(error)message.textContent=error;
+   },"secondary"),message);
    holder.append(card);
  }
- if(!found)holder.append(el("p","hint","No exact matches in this supplier catalogue. TradeMargin will not price deck screws as deck boards or use different board sizes. A new price collection is needed to find missing products."));
- holder.append(el("p","hint","Due diligence: verify matching product, treatment, dimensions, pack size, retailer price and local stock. These prices are not confirmed Moncton checkout quotes."));
+ if(!found)holder.append(el("p","hint","No exact matches in saved price data. Use the Google/Safari search links for each supplier above; copy the price and product link back here. Safari doesn't allow this website to read other tabs automatically."));
+ holder.append(el("p","hint","Due diligence: Google can return advertisements and unrelated products. Confirm retailer domain, wood treatment, dimensions, quantity, package size and Moncton availability. TradeMargin cannot automatically extract pricing from Safari pages."));
 }
 async function autoCheckPrices(onlyId=null){
  const status=$("priceStatus");
