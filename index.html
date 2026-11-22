@@ -192,47 +192,31 @@ async function autoCheckPrices(onlyId=null){
   const time=checked&&!Number.isNaN(checked.getTime())?checked.toLocaleString():"Unknown";
   status.textContent="Supplier prices last checked: "+time+". You may use retailer-linked prices for estimates, including unverified local-store prices. Due diligence: open each product link and confirm the item, package quantity, current price, local availability and pickup/delivery before quoting or buying.";
   let total=0;
-  const norm=t=>String(t||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
-  const stop=new Set(["the","and","with","for","each","one","inch","in","ft","feet","unit","pack","box","of","pressure","treated"]);
-  const canon=t=>{
-    let w=t.toLowerCase().replace(/[^a-z0-9]/g,"");
-    const synonyms={decking:"deck",decks:"deck",boards:"board",screws:"screw",joists:"joist",posts:"post",studs:"stud",rails:"rail",shingles:"shingle",nails:"nail",brackets:"bracket",timbers:"wood"};
-    return synonyms[w]||w.replace(/s$/,"");
-  };
   for(let item of items){
    if(onlyId&&item.id!==onlyId)continue;
-   const terms=[...new Set(norm(item.name).split(" ").map(canon).filter(w=>w.length>2&&!stop.has(w)))];
-   if(!terms.length)continue;
-   const deckBoard=/deck/i.test(item.name)&&/board|decking/i.test(item.name);
-   let matches=feed.offers.map(o=>{
-      const productTokens=new Set(norm(o.name).split(" ").map(canon));
-      const score=terms.filter(t=>productTokens.has(t)).length;
-      const dimensionsOk=dimensionMatches(item,o);
-      const irrelevant=deckBoard&&/tech deck|paddle board|kayak|inflatable|display/i.test(o.name);
-      return {o,score,dimensionsOk,irrelevant};
-   }).filter(v=>v.score>=1&&!v.irrelevant)
-     .sort((a,b)=>Number(b.dimensionsOk)-Number(a.dimensionsOk)||b.score-a.score||a.o.price-b.o.price)
-     .slice(0,8);
+   const matches=feed.offers.map(o=>classifyMatch(item,o)).filter(Boolean)
+     .sort((a,b)=>b.score-a.score||a.warnings.length-b.warnings.length||a.o.price-b.o.price).slice(0,8);
    if(!matches.length)continue;
    total+=matches.length;
    const group=el("div","item"),title=el("h3","",item.name+(dimensionSummary(item)?" ("+dimensionSummary(item)+")":"")+" — supplier price options");group.append(title);
-   for(let {o,dimensionsOk} of matches){
-    const row=el("div","actions"),info=el("span","hint",o.store+" • "+o.name+" • "+money(o.price)+" • "+(o.location||"Location unknown")+(dimensionsOk?"":" • ⚠️ Dimensions differ or are unspecified"));
+   for(let {o,warnings} of matches){
+    const row=el("div","actions"),info=el("span","hint",o.store+" • "+o.name+" • "+money(o.price)+" • "+(o.location||"Location unknown")+(warnings.length?" • ⚠️ Verify listing":""));
     const link=el("a","", "View source ↗");link.href=o.url;link.target="_blank";link.rel="noopener noreferrer";link.style.alignSelf="center";
-    const use=button(dimensionsOk?"Use this price":"Use other-size price",()=>{
-      if(!dimensionsOk&&!confirm("The selected wood dimensions don't match this listing, or aren't stated. Use this price only as a rough estimate?"))return;
+    const use=button("Use this price",()=>{
+      if(warnings.some(w=>w.includes("Unusually high"))&&!confirm("This price may be for a bundle or wrong item. Confirm packaging on the retailer's page before using it."))return;
       let existing=item.offers.find(x=>x.store===o.store);
       const offer={store:o.store,price:String(o.price),url:o.url,sourceName:o.name,checkedAt:o.checked_at||feed.updated_at,location:o.location||"Store not verified",storeVerified:!!o.store_verified};
       if(existing)Object.assign(existing,offer);else item.offers.push(offer);
       render();status.textContent="Added "+money(o.price)+" from "+o.store+" to "+item.name+". Due diligence: open the source link and verify product specs, package size, availability and checkout price before quoting or buying.";
     },"secondary");
     row.append(info,link,use,button("🔔 Watch price",()=>watchListing(o),"secondary"));group.append(row);
+    if(warnings.length)group.append(el("p","hint","⚠️ "+warnings.join(" • ")));
     const note=el("p","hint","Due diligence: check the linked retailer listing for the exact product, quantity, current checkout price and your local store's stock. "+(o.store_verified?"Store selection supplied by scraper; still confirm availability.":"Store/location not verified. Online stock is not confirmed by this listing."));group.append(note);
    }
    box.append(group);
   }
   box.scrollIntoView({behavior:"smooth",block:"start"});
-  if(!total)box.append(el("p","hint","No matching listings in the latest supplier feed (only "+feed.offers.length+" products collected so far). This searches saved supplier data, not retailer websites live. Try a simpler material name or enter a price manually."));
+  if(!total)box.append(el("p","hint","No matching product types and dimensions in the collected supplier feed ("+feed.offers.length+" listings). TradeMargin will not substitute unrelated products. This is not a live retailer search. More products require a fresh supplier collection."));
  }catch(err){status.textContent="Unable to check supplier feed: "+err.message+". Manual price entry still works."}
 }
 function loadTrade(){let names=trades[$("trade").value]||[];if(items.length&&!confirm("Replace your current material list with this trade's starter items?"))return;items=names.map(fresh);render();$("status").textContent="Loaded starter materials. Enter exact quantities and prices; nothing is priced automatically."}
