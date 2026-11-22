@@ -1,0 +1,30 @@
+name: Research one product across public retailer websites
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: "Exact material (include treatment, thickness, width and length)"
+        required: true
+        type: string
+permissions:
+  contents: write
+jobs:
+  web-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Research public indexed product listings (no Apify)
+        env:
+          RESEARCH_QUERY: ${{ inputs.query }}
+        run: python3 scripts/web_research.py
+      - name: Save research results
+        run: |
+          git config user.name "TradeMargin Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/web_research.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Update independent public-web product research"
+            git pull --rebase
+            git push
+          fi
