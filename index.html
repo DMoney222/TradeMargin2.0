@@ -83,7 +83,7 @@ async function autoCheckPrices(){
   if(!Array.isArray(feed.offers)||!feed.offers.length){status.textContent="Automatic live supplier prices aren't connected yet. A pricing provider and API key must be configured. You can still compare manually entered quotes.";return}
   const checked=feed.updated_at?new Date(feed.updated_at):null;
   const time=checked&&!Number.isNaN(checked.getTime())?checked.toLocaleString():"Unknown";
-  status.textContent="Supplier feed: "+feed.provider+" • updated "+time+" • "+feed.location+". Match specs, package sizes and local availability before using a price.";
+  status.textContent="Supplier feed: "+feed.provider+" • updated "+time+". These are candidate prices, not confirmed local quotes. Check the exact product, unit, store and availability before choosing where to shop.";
   let total=0;
   const norm=t=>String(t||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
   const stop=new Set(["the","and","with","for","each","one","inch","in","ft","feet","board","unit","pack","box","of"]);
@@ -96,11 +96,11 @@ async function autoCheckPrices(){
    for(let {o} of matches){
     const row=el("div","actions"),info=el("span","hint",o.store+" • "+o.name+" • "+money(o.price)+" • "+(o.location||"Location unknown"));
     const link=el("a","", "View source ↗");link.href=o.url;link.target="_blank";link.rel="noopener noreferrer";link.style.alignSelf="center";
-    const use=button("Use verified match",()=>{
-      if(!confirm("Confirm this is the exact product, unit and package size needed: "+o.name+"?"))return;
+    const use=button(o.store_verified?"Use after verifying":"Use unverified price",()=>{
+      if(!confirm("Have you checked the retailer link to confirm this is the exact product, quantity/unit, correct local store, and current available price? "+o.name+(o.store_verified?"":" WARNING: store location NOT verified.") ))return;
       let existing=item.offers.find(x=>x.store===o.store);
       if(existing)existing.price=String(o.price);else item.offers.push({store:o.store,price:String(o.price)});
-      render();status.textContent="Price copied for "+item.name+". Confirm location and unit match before bidding.";
+      render();status.textContent="Candidate price copied for "+item.name+". Recheck source, local availability and pack size before bidding.";
     },"secondary");
     row.append(info,link,use);group.append(row);
    }
