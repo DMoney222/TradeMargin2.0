@@ -136,7 +136,13 @@ def collect(token, selected=None, runner=api_call):
     terms = [str(row["query"]).strip() for row in
              json.loads(QUERY_FILE.read_text(encoding="utf-8"))
              if isinstance(row, dict) and row.get("query")]
-    terms = list(dict.fromkeys(terms))[:MAX_QUERIES]
+    single_query = os.environ.get("PRICE_QUERY", "").strip()
+    if single_query:
+        if len(single_query) > 160 or len(single_query) < 3 or "\\n" in single_query:
+            raise ValueError("Single product query must be 3–160 characters")
+        terms = [single_query]
+    else:
+        terms = list(dict.fromkeys(terms))[:MAX_QUERIES]
     if not terms:
         raise ValueError("No product queries")
     checked_at = dt.datetime.now(dt.timezone.utc).isoformat()
@@ -161,6 +167,19 @@ def collect(token, selected=None, runner=api_call):
     if not all_offers:
         raise RuntimeError("No source-linked CAD offers from any supplier; existing feed unchanged. " +
                            json.dumps(statuses))
+    # Single-item searches update their products without deleting existing offers.
+    # Keep a bounded catalogue to avoid unbounded GitHub Pages growth.
+    if single_query and OUTPUT.exists():
+        try:
+            old_feed = json.loads(OUTPUT.read_text(encoding="utf-8"))
+            current_keys = {(r["store"], r["url"], r.get("location", "")) for r in all_offers}
+            older = [r for r in old_feed.get("offers", [])
+                     if (r.get("store"), r.get("url"), r.get("location", "")) not in current_keys]
+            all_offers.extend(older[:1500])
+            for supplier, old_status in old_feed.get("suppliers", {}).items():
+                statuses.setdefault(supplier, dict(old_status, status="not_checked_this_run"))
+        except (OSError, ValueError, TypeError):
+            pass
     # Compare only the same source product at the same store scope. Never
     # call a missing product a price change, or compare prices across stores.
     previous = {}
@@ -203,6 +222,8 @@ def collect(token, selected=None, runner=api_call):
         "location": "Store-local only when explicit store ID configured",
         "provider": "Independent Apify actors (not retailer partnerships)",
         "offers": all_offers,
+        "last_query": single_query or None,
+        "last_checked_suppliers": selected,
         "suppliers": statuses,
         "note": ("Candidate listings only; verify product identity, pack size, retailer permissions, "
                  "current store pricing and stock. Unverified/default stores are not Moncton offers."),
@@ -216,6 +237,8 @@ def main():
     if not token:
         raise ValueError("APIFY_TOKEN secret not configured; no supplier calls made")
     selected = [s.strip() for s in os.environ.get("SUPPLIERS", "").split(",") if s.strip()]
+    if os.environ.get("PRICE_QUERY", "").strip() and not selected:
+        selected = ["Home Depot Canada", "Canadian Tire"]
     data = collect(token, selected or None)
     print("Supplier status:", json.dumps(data["suppliers"]))
     print("Offers:", len(data["offers"]))
