@@ -71,19 +71,63 @@ async function checkFeed(){let stamp=$("feedStamp");stamp.textContent="Checking 
 function fresh(name=""){return {id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),name,qty:1,unit:"each",dimensions:{width:"",thickness:"",length:"",lengthUnit:"ft"},offers:[{store:"Kent",price:""},{store:"Home Depot",price:""}]}}
 function isWood(item){return /board|lumber|joist|stud|post|beam|plank|deck|plywood|sheath|timber|rafter|fascia|trim|sill|strapping|furring|plate|picket|rail|2\\s*[×x]\\s*[4-9]|4\\s*[×x]\\s*4/i.test(item.name||"")}
 function dimensionSummary(item){let d=item.dimensions||{};return [d.thickness?d.thickness+'″ thick':"",d.width?d.width+'″ wide':"",d.length?d.length+' '+(d.lengthUnit||"ft")+' long':""].filter(Boolean).join(", ")}
-function dimensionMatches(item,offer){let d=item.dimensions||{};if(!d.thickness&&!d.width&&!d.length)return true;
- const name=String(offer.name||"").toLowerCase().replace(/½/g,".5").replace(/¼/g,".25");
- const normalized=name.replace(/[-–]/g," ").replace(/feet|foot/g,"ft").replace(/inches|inch/g,"in");
- const numbers=(v)=>String(v).trim().replace(/[^0-9.]/g,"");
- const dims=[numbers(d.thickness),numbers(d.width)].filter(Boolean);
- // A product title can list dimensions as 5/4 × 6, 2×4, 1×6 etc.
- // Avoid treating generic names or no stated dimensions as verified matches.
- if(dims.length===2){const t=dims[0],w=dims[1];const pair=new RegExp("(^|[^0-9])"+t+"\\s*(?:in|\\\"|\\s)*[x×]\\s*"+w+"(?![0-9])","i");
- const reverse=new RegExp("(^|[^0-9])"+w+"\\s*(?:in|\\\"|\\s)*[x×]\\s*"+t+"(?![0-9])","i");
- if(!pair.test(normalized)&&!reverse.test(normalized))return false}
- else if(dims.length===1){if(!new RegExp("(^|[^0-9])"+dims[0]+"\\s*(?:in|\\\"|[x×]|\\s)","i").test(normalized))return false}
- if(d.length){const length=numbers(d.length),unit=d.lengthUnit==="in"?"(?:in|\\\"|inches?)":"(?:ft|feet|foot|')";const pattern=new RegExp("(^|[^0-9])"+length+"\\s*"+unit+"(?![a-z0-9])","i");if(!pattern.test(name))return false}
- return true
+
+function itemType(value){
+ const t=String(value||"").toLowerCase();
+ if(/paddle.board|kayak|inflatable|tech deck|board display/.test(t))return "irrelevant";
+ if(/deck/.test(t)&&/board|plank|decking/.test(t))return "deck-board";
+ if(/deck/.test(t)&&/screw/.test(t))return "deck-screws";
+ if(/drywall/.test(t)&&/screw/.test(t))return "drywall-screws";
+ if(/drywall|gypsum/.test(t)&&/sheet|panel|board/.test(t))return "drywall-sheet";
+ if(/pex/.test(t)&&/pipe|tubing/.test(t))return "pex-pipe";
+ if(/pex/.test(t)&&/elbow|coupling|tee|adapter|fitting/.test(t))return "pex-fitting";
+ if(/14\s*[/\-]\s*2/.test(t)&&/wire|cable|romex|nmd90|ac90/.test(t))return "14-2-wire";
+ if(/primer/.test(t))return "primer";
+ if(/shingle/.test(t))return "shingles";
+ if(/roofing/.test(t)&&/nail/.test(t))return "roofing-nails";
+ if(/(?:\b(?:2|4|6|8)\s*[x×]\s*(?:2|4|6|8|10|12)\b)|joist|stud|post|lumber/.test(t))return "lumber";
+ if(/railing|handrail/.test(t))return "railing";
+ return "";
+}
+function searchTokens(value){
+ const syn={decking:"deck",decks:"deck",boards:"board",screws:"screw",joists:"joist",posts:"post",studs:"stud",shingles:"shingle",nails:"nail",lumber:"wood"};
+ return String(value||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim().split(" ").map(w=>syn[w]||w.replace(/s$/,"")).filter(w=>w.length>2&&!["the","and","for","with","inch","feet","foot","each","size","pack"].includes(w));
+}
+function lumberDimensions(name){
+ const t=String(name||"").toLowerCase().replace(/×/g,"x");
+ const m=t.match(/(\d+(?:\.\d+)?|5\/4)\s*(?:in\.?|")?\s*x\s*(\d+(?:\.\d+)?)\s*(?:in\.?|")?\s*x\s*(\d+(?:\.\d+)?)\s*(?:ft\.?|')?/);
+ if(!m)return null;
+ return {thickness: m[1]==="5/4"?1.25:Number(m[1]),width:Number(m[2]),length:Number(m[3])};
+}
+function classifyMatch(item,offer){
+ const query=String(item.name||""),name=String(offer.name||"");
+ const wanted=itemType(query),product=itemType(name);
+ if(product==="irrelevant"||(wanted&&product!==wanted))return null;
+ const terms=[...new Set(searchTokens(query))],tokens=new Set(searchTokens(name));
+ const hits=terms.filter(t=>tokens.has(t)).length;
+ if(!hits||(!wanted&&(hits<2||hits/Math.max(1,terms.length)<0.5)))return null;
+ const wantsPT=/pressure[ -]?treated|\bpt\b/i.test(query);
+ const isPT=/pressure[ -]?treated|\bpt\b/i.test(name);
+ const composite=/composite|trex|ultrashield|pvc decking/i.test(name);
+ if(wantsPT&&(!isPT||composite))return null;
+ if(/composite/i.test(query)&&!composite)return null;
+ if(/nmd90/i.test(query)&&/ac90/i.test(name))return null;
+ const d=item.dimensions||{};
+ if(d.thickness||d.width||d.length){
+   const p=lumberDimensions(name);
+   if(!p)return null;
+   const same=(a,b)=>Math.abs(Number(a)-Number(b))<0.06;
+   if(d.thickness&&!same(d.thickness,p.thickness))return null;
+   if(d.width&&!same(d.width,p.width))return null;
+   if(d.length&&!same(d.lengthUnit==="in"?Number(d.length)/12:d.length,p.length))return null;
+ }
+ const warnings=[];
+ if(!offer.store_verified)warnings.push("Local store and stock not verified");
+ const checked=Date.parse(offer.checked_at||"");
+ if(!Number.isFinite(checked)||Date.now()-checked>86400000)warnings.push("Price is older than 24 hours");
+ if(wanted==="deck-board"&&Number(offer.price)>250)warnings.push("Unusually high price for one board; confirm package quantity");
+ if(wanted==="deck-board"&&!wantsPT&&!/composite/i.test(query))warnings.push(composite?"Composite decking":"Confirm deck board material");
+ return {o:offer,score:(wanted?6:0)+2*hits,warnings};
 }
 function el(tag,cls,txt){let e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e}
 function field(labelText,value,onChange,type="text"){let l=el("label"),i=el("input");l.append(document.createTextNode(labelText));i.type=type;i.value=value;if(type==="number"){i.min="0";i.step=".01"}i.addEventListener("input",()=>onChange(i.value));l.append(i);return l}
