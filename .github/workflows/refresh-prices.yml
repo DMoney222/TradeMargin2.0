@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check configured supplier catalogues
         env:
-          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          APIFY_TOKEN: ${{ secrets.API_TOKEN }}
           SUPPLIERS: ${{ inputs.suppliers }}
           RONA_STORE_NUMBER: ${{ vars.RONA_STORE_NUMBER }}
           HOME_DEPOT_STORE_ID: ${{ vars.HOME_DEPOT_STORE_ID }}
