@@ -16,7 +16,7 @@
 <label>Material markup (%)<input id="markup" type="number" min="0" step=".1" value="15"></label>
 <label>Tax rate (%)<input id="tax" type="number" min="0" step=".1" value="15"></label>
 </div><div class="actions"><button id="template" class="secondary">Load general materials for this trade</button><button id="differentJob" class="secondary">Choose another job type</button></div><p class="hint">Templates contain starter items only. Adjust specifications, quantities and compliance requirements before bidding. Changing trades will not delete your current list.</p></section>
-<section class="card"><h2>2. Materials & supplier offers</h2><div class="actions"><button id="autocheck">🔎 Find supplier prices & add to estimate</button></div><p id="priceStatus" class="hint" aria-live="polite">Search one material at a time. Beneath it, choose a supplier to search Google in Safari for your exact dimensions, then enter the product price and link here. Existing matching supplier prices appear automatically when available.</p><div id="priceResults"></div><div id="materials" class="materials"></div><div class="actions"><button id="add">+ Add material</button><button id="clearitems" class="secondary">Remove all materials</button></div><p class="hint">Add multiple supplier offers for each material. Blank prices are treated as unquoted, not free. Select matching product grade, package size and units when comparing.</p></section>
+<section class="card"><h2>2. Materials & supplier offers</h2><div class="notice"><strong>Automatic web research (optional)</strong><p class="hint">Once your research backend is deployed, paste its Cloudflare Worker URL here once. Then Find Prices automatically reads public retailer product listings and adds confirmed matching CAD results under each material—no Safari tabs or copy/paste. Without a backend, saved prices and manual Google searches still work.</p><div class="grid"><label>Research service URL<input id="researchBackend" type="url" placeholder="https://trademargin-research.your-account.workers.dev" autocomplete="url"></label><div><button type="button" id="saveBackend">Save research connection</button><button type="button" class="secondary" id="testBackend">Test connection</button></div></div><p id="backendStatus" class="hint" aria-live="polite">Automatic research needs a deployed web service.</p></div><div class="actions"><button id="autocheck">🔎 Find supplier prices & add to estimate</button></div><p id="priceStatus" class="hint" aria-live="polite">Search materials individually. When the research backend is connected, TradeMargin reads public product pages and adds matching priced products under each material. You can still use Google/Safari as a fallback.</p><div id="priceResults"></div><div id="materials" class="materials"></div><div class="actions"><button id="add">+ Add material</button><button id="clearitems" class="secondary">Remove all materials</button></div><p class="hint">Add multiple supplier offers for each material. Blank prices are treated as unquoted, not free. Select matching product grade, package size and units when comparing.</p></section>
 <section class="card"><h2>3. Costs of multiple stops</h2><div class="grid">
 <label>Extra time per additional store (hr)<input id="stopHours" type="number" min="0" step=".25" value=".5"></label>
 <label>Your shopping time ($/hr)<input id="shoppingRate" type="number" min="0" step=".01" value="25"></label>
@@ -49,6 +49,32 @@ const vendors=["Kent","Home Depot Canada","RONA","Home Hardware","Canadian Tire"
 const $=id=>document.getElementById(id),num=x=>Math.max(0,Number(x)||0),money=x=>new Intl.NumberFormat("en-CA",{style:"currency",currency:"CAD"}).format(x),fields=["project","trade","city","hours","rate","markup","tax","stopHours","shoppingRate","fuel","other","projectCosts"];
 let items=[];let latestFeed=null;const searchResultsById=new Map();
 const priceSuppliers=["Kent","Home Depot Canada","RONA","Home Hardware","Canadian Tire"];
+const backendKey="TradeMarginResearchBackend";
+function backendUrl(){
+ const raw=($("researchBackend")?.value||localStorage.getItem(backendKey)||"").trim().replace(/\/$/,"");
+ if(!raw)return "";
+ try{const u=new URL(raw);return u.protocol==="https:"&&!u.username&&!u.password&&!u.search&&!u.hash?u.origin:""}catch(e){return ""}
+}
+function researchQuery(item){
+ const d=item.dimensions||{};
+ const dims=d.thickness&&d.width&&d.length
+   ?(Number(d.thickness)===1.25?"5/4":d.thickness)+" x "+d.width+" x "+d.length+(d.lengthUnit==="in"?" in":" ft")
+   :"";
+ const treatment=itemType(item.name)==="deck-board"?
+   (boardMaterial(item)==="pressure-treated"?"pressure treated":boardMaterial(item)==="composite"?"composite":"untreated"):"";
+ return [item.name,treatment,dims].filter(Boolean).join(" ").trim();
+}
+async function testBackend(){
+ const u=backendUrl();
+ if(!u){$("backendStatus").textContent="Enter a valid HTTPS research service address.";return}
+ $("backendStatus").textContent="Checking research service…";
+ try{const r=await fetch(u+"/health",{signal:AbortSignal.timeout(10000)});
+ const body=await r.json();
+ if(!r.ok||!body.ok)throw Error("Service did not respond");
+ $("backendStatus").textContent="✅ Research service is connected. Find Prices can now research new supplier listings.";
+ }catch(e){$("backendStatus").textContent="Research service unavailable: "+e.message+" — verify the Worker URL and deployment."}
+}
+
 function boardMaterial(item){
  if(item.treatment)return item.treatment;
  return itemType(item.name)==="deck-board"?"pressure-treated":"any";
@@ -307,7 +333,7 @@ async function autoCheckPrices(onlyId=null){
  const status=$("priceStatus");
  const targets=onlyId?items.filter(i=>i.id===onlyId):[...items];
  if(!targets.length){status.textContent="Add a material before searching for supplier prices.";return}
- status.textContent="Comparing each material against the collected supplier catalogue…";
+ status.textContent="Checking prices and researching matching products…";
  try{
    const [supplierResponse,researchResponse]=await Promise.all([
      fetch("./data/prices.json?ts="+Date.now(),{cache:"no-store"}),
@@ -322,6 +348,7 @@ async function autoCheckPrices(onlyId=null){
    const researched=(Array.isArray(research.offers)?research.offers:[]).filter(o=>o.currency==="CAD"&&o.currency_verified&&o.store&&o.name&&Number(o.price)>0&&typeof o.url==="string"&&o.url.startsWith("https://"));
    const checked=feed.updated_at?new Date(feed.updated_at).toLocaleString():"Unknown";
    const combined=[...researched,...feed.offers];
+   const service=backendUrl();
    for(const item of targets){
      const requiresSize=itemType(item.name)==="deck-board"||itemType(item.name)==="lumber";
      const d=item.dimensions||{};
@@ -330,8 +357,23 @@ async function autoCheckPrices(onlyId=null){
      if(!item.name.trim())error="Enter the material name before searching.";
      else if(missingSize)error="Select thickness, width and length before searching for this wood product. Accurate dimensions are required.";
      const byStore=Object.fromEntries(priceSuppliers.map(store=>[store,[]]));
+     let liveStatus=service?"Online research not attempted":"Research backend not connected";
+     let liveOffers=[];
+     if(!error&&service){
+       const query=researchQuery(item);
+       liveStatus="Searching public web…";
+       status.textContent="Researching "+query+" across retailers…";
+       try{
+         const endpoint=service+"/search?query="+encodeURIComponent(query);
+         const liveResponse=await fetch(endpoint,{signal:AbortSignal.timeout(58000)});
+         const online=await liveResponse.json();
+         if(!liveResponse.ok)throw Error(online.error||"HTTP "+liveResponse.status);
+         liveOffers=(Array.isArray(online.offers)?online.offers:[]).filter(o=>o.currency==="CAD"&&o.currency_verified&&Number(o.price)>0&&priceSuppliers.includes(o.store)&&typeof o.url==="string");
+         liveStatus=liveOffers.length?liveOffers.length+" retailer-priced listings researched"+(online.cached?" (cached)":""):"Web research returned no usable retailer prices for this item";
+       }catch(err){liveStatus="Web search unavailable: "+err.message}
+     }
      if(!error){
-       for(const o of combined){
+       for(const o of [...liveOffers,...combined]){
          if(!byStore[o.store])continue;
          const match=classifyMatch(item,o);
          if(match)byStore[o.store].push(match);
@@ -339,12 +381,12 @@ async function autoCheckPrices(onlyId=null){
        for(const store of priceSuppliers)byStore[store].sort((a,b)=>b.score-a.score||a.warnings.length-b.warnings.length||a.o.price-b.o.price).splice(6);
      }
      const sourceNote=research.updated_at?" Independent web research last ran "+new Date(research.updated_at).toLocaleString()+" for: "+research.query+".":" Independent web research has not been run yet.";
-     searchResultsById.set(item.id,{byStore,checked:checked+"."+sourceNote,updated:feed.updated_at,error});
+     searchResultsById.set(item.id,{byStore,checked:checked+"."+sourceNote+" "+liveStatus+".",updated:feed.updated_at,error});
      const result=document.getElementById("price-for-"+item.id);
      if(result)showItemPriceResults(item,result);
    }
    $("priceResults").replaceChildren();
-   status.textContent="Supplier data checked "+checked+". Independent web research "+(research.updated_at?"last ran for "+research.query:"has not run yet")+". Results are shown under "+(onlyId?"your material.":"each material.")+" Only exact product and dimension matches are accepted.";
+   status.textContent="Search completed. Supplier prices appear underneath "+(onlyId?"your material.":"each material.")+" Results only include matched product types and dimensions. Online research may be incomplete if stores block access.";
    const first=document.getElementById("price-for-"+targets[0].id);
    if(first)first.scrollIntoView({behavior:"smooth",block:"nearest"});
  }catch(err){status.textContent="Price checker couldn't load supplier data: "+err.message;
@@ -390,6 +432,15 @@ for(let trade of Object.keys(trades)){let o=el("option","",trade);o.value=trade;
 fields.forEach(k=>$(k).addEventListener("input",calculate));
 $("add").onclick=()=>{items.push(fresh());render()};$("template").onclick=loadTrade;$("clearitems").onclick=()=>{if(confirm("Remove all materials from this estimate?")){items=[];render()}};$("save").onclick=save;$("csv").onclick=exportCSV;$("print").onclick=()=>print();$("reset").onclick=()=>{if(confirm("Clear this entire project and its saved data?")){localStorage.removeItem("TradeMargin2Estimate");location.reload()}};
 $("autocheck").onclick=()=>autoCheckPrices();
+$("researchBackend").value=localStorage.getItem(backendKey)||"";
+$("saveBackend").onclick=()=>{
+ const u=backendUrl();
+ if(!u){$("backendStatus").textContent="Please enter a valid HTTPS Worker URL.";return}
+ localStorage.setItem(backendKey,u);
+ $("backendStatus").textContent="Research service address saved on this device. Select Test connection.";
+};
+$("testBackend").onclick=testBackend;
+if(backendUrl())$("backendStatus").textContent="Research service configured; select Test connection to verify.";
 $("checkFeed").onclick=checkFeed;
 if(!restore())items=[];render();$("chooser").hidden=false;$("workspace").hidden=true;checkFeed();
 </script></body></html>
