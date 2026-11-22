@@ -1,0 +1,24 @@
+name: Refresh verified supplier prices
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fetch-prices:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch source-linked price listings
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          RONA_STORE_NUMBER: ${{ vars.RONA_STORE_NUMBER }}
+        run: python3 scripts/refresh_prices.py
+      - name: Commit verified feed
+        run: |
+          git config user.name "TradeMargin Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/prices.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Refresh supplier price listings"
+            git push
+          fi
