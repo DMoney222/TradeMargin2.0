@@ -16,7 +16,7 @@
 <label>Material markup (%)<input id="markup" type="number" min="0" step=".1" value="15"></label>
 <label>Tax rate (%)<input id="tax" type="number" min="0" step=".1" value="15"></label>
 </div><div class="actions"><button id="template" class="secondary">Load general materials for this trade</button><button id="differentJob" class="secondary">Choose another job type</button></div><p class="hint">Templates contain starter items only. Adjust specifications, quantities and compliance requirements before bidding. Changing trades will not delete your current list.</p></section>
-<section class="card"><h2>2. Materials & supplier offers</h2><div class="actions"><button id="autocheck">🔎 Find supplier prices & add to estimate</button></div><p id="priceStatus" class="hint" aria-live="polite">Search each material separately. Matching retailer prices appear directly beneath that material, grouped by supplier, with a button to add the selected price to the estimate. Only previously collected listings are available.</p><div id="priceResults"></div><div id="materials" class="materials"></div><div class="actions"><button id="add">+ Add material</button><button id="clearitems" class="secondary">Remove all materials</button></div><p class="hint">Add multiple supplier offers for each material. Blank prices are treated as unquoted, not free. Select matching product grade, package size and units when comparing.</p></section>
+<section class="card"><h2>2. Materials & supplier offers</h2><div class="actions"><button id="autocheck">🔎 Find supplier prices & add to estimate</button></div><p id="priceStatus" class="hint" aria-live="polite">Search each material separately. Results from the supplier feed and independent web-research feed appear underneath the material, grouped by supplier. Web research must be run separately through the GitHub workflow; this button does not initiate a live internet search.</p><div id="priceResults"></div><div id="materials" class="materials"></div><div class="actions"><button id="add">+ Add material</button><button id="clearitems" class="secondary">Remove all materials</button></div><p class="hint">Add multiple supplier offers for each material. Blank prices are treated as unquoted, not free. Select matching product grade, package size and units when comparing.</p></section>
 <section class="card"><h2>3. Costs of multiple stops</h2><div class="grid">
 <label>Extra time per additional store (hr)<input id="stopHours" type="number" min="0" step=".25" value=".5"></label>
 <label>Your shopping time ($/hr)<input id="shoppingRate" type="number" min="0" step=".01" value="25"></label>
@@ -216,7 +216,7 @@ function showItemPriceResults(item,holder){
  const head=el("h4","", "Supplier prices for: "+item.name+(dimensionSummary(item)?" — "+dimensionSummary(item):""));
  holder.append(head);
  if(payload.error){holder.append(el("p","hint",payload.error));return}
- const stamp=el("p","hint","Results from published supplier catalogue, updated "+payload.checked+". Choose a product separately for each supplier. No unrelated products or dimensions are substituted.");
+ const stamp=el("p","hint","Results from published supplier data: "+payload.checked+" Choose one product separately for each supplier. Listings are not verified local-store prices.");
  holder.append(stamp);
  let found=0;
  for(const store of priceSuppliers){
@@ -260,11 +260,19 @@ async function autoCheckPrices(onlyId=null){
  if(!targets.length){status.textContent="Add a material before searching for supplier prices.";return}
  status.textContent="Comparing each material against the collected supplier catalogue…";
  try{
-   const response=await fetch("./data/prices.json?ts="+Date.now(),{cache:"no-store"});
-   if(!response.ok)throw Error("Supplier database unavailable ("+response.status+")");
-   const feed=await response.json();latestFeed=feed;displayFeed(feed);
+   const [supplierResponse,researchResponse]=await Promise.all([
+     fetch("./data/prices.json?ts="+Date.now(),{cache:"no-store"}),
+     fetch("./data/web_research.json?ts="+Date.now(),{cache:"no-store"}).catch(()=>null)
+   ]);
+   if(!supplierResponse.ok)throw Error("Supplier database unavailable ("+supplierResponse.status+")");
+   const feed=await supplierResponse.json();
+   let research={offers:[],query:null,updated_at:null};
+   if(researchResponse&&researchResponse.ok){try{research=await researchResponse.json()}catch(e){}}
+   latestFeed=feed;displayFeed(feed);
    if(!Array.isArray(feed.offers))throw Error("Supplier database format is invalid");
+   const researched=(Array.isArray(research.offers)?research.offers:[]).filter(o=>o.currency==="CAD"&&o.currency_verified&&o.store&&o.name&&Number(o.price)>0&&typeof o.url==="string"&&o.url.startsWith("https://"));
    const checked=feed.updated_at?new Date(feed.updated_at).toLocaleString():"Unknown";
+   const combined=[...researched,...feed.offers];
    for(const item of targets){
      const requiresSize=itemType(item.name)==="deck-board"||itemType(item.name)==="lumber";
      const d=item.dimensions||{};
@@ -274,19 +282,20 @@ async function autoCheckPrices(onlyId=null){
      else if(missingSize)error="Select thickness, width and length before searching for this wood product. Accurate dimensions are required.";
      const byStore=Object.fromEntries(priceSuppliers.map(store=>[store,[]]));
      if(!error){
-       for(const o of feed.offers){
+       for(const o of combined){
          if(!byStore[o.store])continue;
          const match=classifyMatch(item,o);
          if(match)byStore[o.store].push(match);
        }
        for(const store of priceSuppliers)byStore[store].sort((a,b)=>b.score-a.score||a.warnings.length-b.warnings.length||a.o.price-b.o.price).splice(6);
      }
-     searchResultsById.set(item.id,{byStore,checked,updated:feed.updated_at,error});
+     const sourceNote=research.updated_at?" Independent web research last ran "+new Date(research.updated_at).toLocaleString()+" for: "+research.query+".":" Independent web research has not been run yet.";
+     searchResultsById.set(item.id,{byStore,checked:checked+"."+sourceNote,updated:feed.updated_at,error});
      const result=document.getElementById("price-for-"+item.id);
      if(result)showItemPriceResults(item,result);
    }
    $("priceResults").replaceChildren();
-   status.textContent="Supplier catalogue checked "+checked+". Results are shown directly underneath "+(onlyId?"the searched material.":"each material.")+" Only exact matching categories and supplied dimensions are shown.";
+   status.textContent="Supplier data checked "+checked+". Independent web research "+(research.updated_at?"last ran for "+research.query:"has not run yet")+". Results are shown under "+(onlyId?"your material.":"each material.")+" Only exact product and dimension matches are accepted.";
    const first=document.getElementById("price-for-"+targets[0].id);
    if(first)first.scrollIntoView({behavior:"smooth",block:"nearest"});
  }catch(err){status.textContent="Price checker couldn't load supplier data: "+err.message;
