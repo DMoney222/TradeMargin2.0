@@ -100,7 +100,11 @@ if(changes){let banner=el("p","notice",changes+" watched product price change"+(
 async function checkFeed(){let stamp=$("feedStamp");stamp.textContent="Checking latest published supplier feed…";try{let response=await fetch("./data/prices.json?ts="+Date.now(),{cache:"no-store"});if(!response.ok)throw Error("HTTP "+response.status);latestFeed=await response.json();displayFeed(latestFeed)}catch(e){stamp.textContent="Supplier feed unavailable: "+e.message}}
 
 function fresh(name=""){return {id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),name,qty:1,unit:"each",treatment:/deck board|decking/i.test(name)?"pressure-treated":"any",dimensions:{width:"",thickness:"",length:"",lengthUnit:"ft"},offers:[]}}
-function isWood(item){return /board|lumber|joist|stud|post|beam|plank|deck|plywood|sheath|timber|rafter|fascia|trim|sill|strapping|furring|plate|picket|rail|2\\s*[×x]\\s*[4-9]|4\\s*[×x]\\s*4/i.test(item.name||"")}
+function isWood(item){
+ const name=String(item.name||"");
+ if(/deck\s*screws?|drywall\s*screws?|power\s*tool|nails?|fasteners?|deck\s*blocks?/i.test(name))return false;
+ return itemType(name)==="deck-board"||itemType(name)==="lumber"||/board|lumber|joist|stud|post|beam|plank|plywood|sheath|timber|rafter|fascia|trim|sill|strapping|furring|plate|picket/i.test(name);
+}
 function dimensionSummary(item){let d=item.dimensions||{};return [d.thickness?d.thickness+'″ thick':"",d.width?d.width+'″ wide':"",d.length?d.length+' '+(d.lengthUnit||"ft")+' long':""].filter(Boolean).join(", ")}
 
 function itemType(value){
