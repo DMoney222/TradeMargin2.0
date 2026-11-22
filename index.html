@@ -6,7 +6,7 @@
 </style></head><body>
 <header><h1>⚒ TradeMargin 2.0</h1><p>Accurate estimates • Compare suppliers • All skilled trades</p></header>
 <section id="chooser" class="chooser"><div class="choosePanel"><div class="eyebrow">Welcome to TradeMargin</div><h2 style="font-size:28px;margin:8px 0">What trade are you estimating?</h2><p class="hint">Start by choosing your trade. Each trade has its own job types and starter material lists.</p><div id="tradeCards" class="tradeGrid"></div><div id="jobChooser" hidden><h2 id="chosenTradeTitle">Choose a job type</h2><p class="hint">Select a job to start with its materials, or choose a blank estimate.</p><div id="jobCards" class="jobGrid"></div><div class="actions"><button id="startEstimate">Create estimate →</button><button id="backTrades" class="secondary">← Change trade</button></div></div><div id="chooseStatus" aria-live="polite"></div></div></section>
-<main id="workspace" hidden><section class="card"><div class="topbar"><div><div class="eyebrow">Your workspace</div><h2 id="workspaceTitle">New estimate</h2></div><button id="switchTrade" class="secondary">⇄ Change trade / job</button></div><div class="badge" id="activeJob">Custom estimate</div></section><div class="notice"><strong>Price-check mode:</strong> Tap supplier search links to look up current listings, then enter verified prices below. This static website does <strong>not</strong> automatically retrieve live prices, stock levels, tax or delivery quotes. Example material lists and prices are not guaranteed accurate.</div>
+<main id="workspace" hidden><section class="card"><div class="topbar"><div><div class="eyebrow">Your workspace</div><h2 id="workspaceTitle">New estimate</h2></div><button id="switchTrade" class="secondary">⇄ Change trade / job</button></div><div class="badge" id="activeJob">Custom estimate</div></section><div class="notice"><strong>Price-check mode:</strong> Tap supplier search links to look up current listings, then enter verified prices below. This static website does <strong>not</strong> automatically retrieve live prices, stock levels, tax or delivery quotes. Automatic supplier data is available only after a price service is configured; where present, check listing links, location and package sizes. Example material lists and prices are not guaranteed accurate.</div>
 <section class="card"><h2>1. Project and trade</h2><div class="grid">
 <label>Project name<input id="project" placeholder="Customer job"></label>
 <label>Selected trade<select id="trade"></select></label>
@@ -16,7 +16,7 @@
 <label>Material markup (%)<input id="markup" type="number" min="0" step=".1" value="15"></label>
 <label>Tax rate (%)<input id="tax" type="number" min="0" step=".1" value="15"></label>
 </div><div class="actions"><button id="template" class="secondary">Load general materials for this trade</button><button id="differentJob" class="secondary">Choose another job type</button></div><p class="hint">Templates contain starter items only. Adjust specifications, quantities and compliance requirements before bidding. Changing trades will not delete your current list.</p></section>
-<section class="card"><h2>2. Materials & supplier offers</h2><div id="materials" class="materials"></div><div class="actions"><button id="add">+ Add material</button><button id="clearitems" class="secondary">Remove all materials</button></div><p class="hint">Add multiple supplier offers for each material. Blank prices are treated as unquoted, not free. Select matching product grade, package size and units when comparing.</p></section>
+<section class="card"><h2>2. Materials & supplier offers</h2><div class="actions"><button id="autocheck">🔎 Check available supplier price data</button></div><p id="priceStatus" class="hint" aria-live="polite">Automatic supplier pricing requires a connected price-data provider. Manual comparisons remain available.</p><div id="priceResults"></div><div id="materials" class="materials"></div><div class="actions"><button id="add">+ Add material</button><button id="clearitems" class="secondary">Remove all materials</button></div><p class="hint">Add multiple supplier offers for each material. Blank prices are treated as unquoted, not free. Select matching product grade, package size and units when comparing.</p></section>
 <section class="card"><h2>3. Costs of multiple stops</h2><div class="grid">
 <label>Extra time per additional store (hr)<input id="stopHours" type="number" min="0" step=".25" value=".5"></label>
 <label>Your shopping time ($/hr)<input id="shoppingRate" type="number" min="0" step=".01" value="25"></label>
@@ -74,6 +74,41 @@ let table=el("table"),thead=el("tr");["Material","Supplier","Cost"].forEach(v=>t
 for(let p of r.best.picks){let row=el("tr");[p.item.name+" × "+p.item.qty,p.store,money(p.total)].forEach(v=>row.append(el("td","",v)));table.append(row)}
 plan.replaceChildren(table,el("p","hint","Supplier visits: "+r.best.used.join(" → ")+". "+(r.oneStore?"Best complete one-store option: "+r.oneStore.store+" ("+money(r.oneStore.subtotal)+").":"No single supplier has a price for every material.")));if(r.limited)plan.append(el("p","hint","Over 14 suppliers: approximate optimization used."));
 }
+async function autoCheckPrices(){
+ const status=$("priceStatus"),box=$("priceResults");box.replaceChildren();status.textContent="Checking TradeMargin's supplier feed…";
+ try{
+  let response=await fetch("./data/prices.json?ts="+Date.now(),{cache:"no-store"});
+  if(!response.ok)throw Error("Price-feed unavailable ("+response.status+")");
+  let feed=await response.json();
+  if(!Array.isArray(feed.offers)||!feed.offers.length){status.textContent="Automatic live supplier prices aren't connected yet. A pricing provider and API key must be configured. You can still compare manually entered quotes.";return}
+  const checked=feed.updated_at?new Date(feed.updated_at):null;
+  const time=checked&&!Number.isNaN(checked.getTime())?checked.toLocaleString():"Unknown";
+  status.textContent="Supplier feed: "+feed.provider+" • updated "+time+" • "+feed.location+". Match specs, package sizes and local availability before using a price.";
+  let total=0;
+  const norm=t=>String(t||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+  const stop=new Set(["the","and","with","for","each","one","inch","in","ft","feet","board","unit","pack","box","of"]);
+  for(let item of items){
+   const terms=norm(item.name).split(" ").filter(w=>w.length>2&&!stop.has(w));if(!terms.length)continue;
+   let matches=feed.offers.map(o=>({o,score:terms.filter(t=>norm(o.name).split(" ").includes(t)).length})).filter(v=>v.score>=Math.min(2,terms.length)).sort((a,b)=>b.score-a.score||a.o.price-b.o.price).slice(0,5);
+   if(!matches.length)continue;
+   total+=matches.length;
+   const group=el("div","item"),title=el("h3","",item.name+" — possible matches (verify exact product)");group.append(title);
+   for(let {o} of matches){
+    const row=el("div","actions"),info=el("span","hint",o.store+" • "+o.name+" • "+money(o.price)+" • "+(o.location||"Location unknown"));
+    const link=el("a","", "View source ↗");link.href=o.url;link.target="_blank";link.rel="noopener noreferrer";link.style.alignSelf="center";
+    const use=button("Use verified match",()=>{
+      if(!confirm("Confirm this is the exact product, unit and package size needed: "+o.name+"?"))return;
+      let existing=item.offers.find(x=>x.store===o.store);
+      if(existing)existing.price=String(o.price);else item.offers.push({store:o.store,price:String(o.price)});
+      render();status.textContent="Price copied for "+item.name+". Confirm location and unit match before bidding.";
+    },"secondary");
+    row.append(info,link,use);group.append(row);
+   }
+   box.append(group);
+  }
+  if(!total)box.append(el("p","hint","No likely matches to your exact material descriptions were found in the available feed. Try more specific product names or manual supplier quotes."));
+ }catch(err){status.textContent="Unable to check supplier feed: "+err.message+". Manual price entry still works."}
+}
 function loadTrade(){let names=trades[$("trade").value]||[];if(items.length&&!confirm("Replace your current material list with this trade's starter items?"))return;items=names.map(fresh);render();$("status").textContent="Loaded starter materials. Enter exact quantities and prices; nothing is priced automatically."}
 function save(){try{localStorage.setItem("TradeMargin2Estimate",JSON.stringify({v:2,fields:Object.fromEntries(fields.map(k=>[k,$(k).value])),items}));$("status").textContent="Saved in this browser on this device."}catch(e){$("status").textContent="Unable to save in this browser."}}
 function restore(){try{let d=JSON.parse(localStorage.getItem("TradeMargin2Estimate"));if(!d)return false;for(let k of fields){if(d.fields?.[k]!==undefined)$(k).value=d.fields[k]}if(d.v===2){items=d.items||[];return true}items=(d.items||[]).map(i=>({...fresh(i.name),qty:i.qty,unit:i.unit,offers:[{store:i.store||"Local supplier",price:i.low},{store:"One-stop comparison",price:i.one}]}));return true}catch(e){return false}}
@@ -112,5 +147,6 @@ $("trade").addEventListener("change",()=>{if(items.length&&!confirm("Switch trad
 for(let trade of Object.keys(trades)){let o=el("option","",trade);o.value=trade;$("trade").append(o)}$("trade").value="Carpentry & Decks";
 fields.forEach(k=>$(k).addEventListener("input",calculate));
 $("add").onclick=()=>{items.push(fresh());render()};$("template").onclick=loadTrade;$("clearitems").onclick=()=>{if(confirm("Remove all materials from this estimate?")){items=[];render()}};$("save").onclick=save;$("csv").onclick=exportCSV;$("print").onclick=()=>print();$("reset").onclick=()=>{if(confirm("Clear this entire project and its saved data?")){localStorage.removeItem("TradeMargin2Estimate");location.reload()}};
+$("autocheck").onclick=autoCheckPrices;
 if(!restore())items=[];render();$("chooser").hidden=false;$("workspace").hidden=true;
 </script></body></html>
