@@ -1,0 +1,4 @@
+name = "trademargin-research"
+main = "worker/src/index.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
