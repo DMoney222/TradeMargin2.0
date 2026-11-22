@@ -1,8 +1,318 @@
 {
-  "updated_at": "2026-11-22T21:48:13.061067+00:00",
+  "changes": [],
+  "change_count": 0,
+  "updated_at": "2026-11-22T22:14:12.339042+00:00",
   "location": "Store-local only when explicit store ID configured",
   "provider": "Independent Apify actors (not retailer partnerships)",
   "offers": [
+    {
+      "store": "Kent",
+      "name": "Strong-Drive 1/4\" x 3\" Hex Head Connector Screw-25/Pack",
+      "price": 31.09,
+      "url": "https://kent.ca/en/strong-drive-1-4-x-3-hex-head-connector-screw-25-pack-1006906",
+      "sku": "1006906",
+      "query": "deck screws 3 inch",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
+    {
+      "store": "Kent",
+      "name": "#9 x 1-1/2\" Galvanized Hex Head Connector Screw-100/Pack",
+      "price": 16.09,
+      "url": "https://kent.ca/en/9-x-1-1-2-galvanized-hex-head-connector-screw-100-pack-1006896",
+      "sku": "1006896",
+      "query": "deck screws 3 inch",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
+    {
+      "store": "Kent",
+      "name": "#10 x 1-1/2\" Galvanized Hex Head Connector Screw-100/Pack",
+      "price": 19.99,
+      "url": "https://kent.ca/en/10-x-1-1-2-galvanized-hex-head-connector-screw-100-pack-1006880",
+      "sku": "1006880",
+      "query": "deck screws 3 inch",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
+    {
+      "store": "Kent",
+      "name": "2\" x 4\" Brown Drilled Handrail Pressure Treated",
+      "price": 17.49,
+      "url": "https://kent.ca/en/2-x-4-brown-drilled-handrail-pressure-treated-1026578-brn",
+      "sku": "1026578-BRN",
+      "query": "pressure treated 2x4",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
+    {
+      "store": "Kent",
+      "name": "2\" x 4\" Green Drilled Handrail",
+      "price": 3.5,
+      "url": "https://kent.ca/en/2-x-4-green-drilled-handrail-1026578-grn",
+      "sku": "1026578-GRN",
+      "query": "pressure treated 2x4",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
+    {
+      "store": "Kent",
+      "name": "1/2'' x 4' x 8' Brown Plywood Pressure Treated",
+      "price": 59.98,
+      "url": "https://kent.ca/en/1-2-x-4-x-8-brown-plywood-pressure-treated-1016488-brn",
+      "sku": "1016488-BRN",
+      "query": "pressure treated 2x4",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
+    {
+      "store": "Kent",
+      "name": "DeWalt 20V Max XR Drywall Screwgun Brushless 2.0Ah Kit",
+      "price": 389.0,
+      "url": "https://kent.ca/en/dewalt-20v-max-xr-drywall-screwgun-brushless-2-0ah-kit-1390175",
+      "sku": "1390175",
+      "query": "drywall screws",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
+    {
+      "store": "Kent",
+      "name": "#6 x 2-1/4\" Coarse Drywall Screw-100/Pack",
+      "price": 1.6,
+      "url": "https://kent.ca/en/6-x-2-1-4-coarse-drywall-screw-100-pack-1045530",
+      "sku": "1045530",
+      "query": "drywall screws",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
+    {
+      "store": "Kent",
+      "name": "2\" Pro Impact Guide Collar Bit Phillips Head 2",
+      "price": 5.99,
+      "url": "https://kent.ca/en/2-pro-impact-guide-collar-bit-phillips-head-2-1849869",
+      "sku": "1849869",
+      "query": "drywall screws",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
+    {
+      "store": "Kent",
+      "name": "14-1/2\" x 0.19\" Cable Tie Natural 100/Pack",
+      "price": 12.69,
+      "url": "https://kent.ca/en/14-1-2-x-0-19-natural-cable-tie-100-pack-1006130",
+      "sku": "1006130",
+      "query": "14/2 electrical wire",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
+    {
+      "store": "Kent",
+      "name": "NMD90 14/2 AWG Solid Copper Wire 75 m 300 V",
+      "price": 137.0,
+      "url": "https://kent.ca/en/300v-nmd90-solid-copper-wire-75m-14-awg-2-wg-1694437",
+      "sku": "1694437",
+      "query": "14/2 electrical wire",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
+    {
+      "store": "Kent",
+      "name": "14/2 NMD90 Electrical Wire White 75 m/Roll",
+      "price": 149.99,
+      "url": "https://kent.ca/en/14-2-nmd90-75m-electrical-wire-white-1026024",
+      "sku": "1026024",
+      "query": "14/2 electrical wire",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
+    {
+      "store": "Kent",
+      "name": "1/2\" PEX Tee Barb Brass",
+      "price": 1.99,
+      "url": "https://kent.ca/en/1-2-pex-tee-barb-brass-1013959",
+      "sku": "1013959",
+      "query": "PEX 1/2 inch",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
+    {
+      "store": "Kent",
+      "name": "1/2\" Boiler Drain Valve PEX Brass",
+      "price": 20.69,
+      "url": "https://kent.ca/en/1-2-boiler-drain-valve-pex-brass-1013953",
+      "sku": "1013953",
+      "query": "PEX 1/2 inch",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
+    {
+      "store": "Kent",
+      "name": "1/2\" Brass PEX Adapter Barb x Male Sweat",
+      "price": 1.44,
+      "url": "https://kent.ca/en/1-2-brass-pex-adapter-barb-x-male-sweat-1013967",
+      "sku": "1013967",
+      "query": "PEX 1/2 inch",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
+    {
+      "store": "Kent",
+      "name": "Marathon Dual Black  3-Tabs Shingle",
+      "price": 42.97,
+      "url": "https://kent.ca/en/marathon-dual-black-3-tabs-shingle-1010786-dbl",
+      "sku": "1010786-DBL",
+      "query": "asphalt shingles",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
+    {
+      "store": "Kent",
+      "name": "2' x 4' Step Flashing Kit Black for Sloped Shingles",
+      "price": 125.0,
+      "url": "https://kent.ca/en/2-x-4-step-flashing-kit-black-for-sloped-shingles-1886634",
+      "sku": "1886634",
+      "query": "asphalt shingles",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
+    {
+      "store": "Kent",
+      "name": "1\" Hot Dipped Galvanized Roofing Nail-1.5 kg",
+      "price": 34.49,
+      "url": "https://kent.ca/en/1-hot-dipped-galvanized-roofing-nail-1-5-kg-1008486",
+      "sku": "1008486",
+      "query": "asphalt shingles",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
+    {
+      "store": "Kent",
+      "name": "PPG WallPro Interior Wall & Ceiling Primer 18.9L",
+      "price": 103.0,
+      "url": "https://kent.ca/en/ppg-wallpro-interior-wall-ceiling-primer-18-9l-1013413",
+      "sku": "1013413",
+      "query": "paint primer",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
+    {
+      "store": "Kent",
+      "name": "PPG Speedhide Pro-EV Interior Wall Primer Flat White 18.9L",
+      "price": 105.0,
+      "url": "https://kent.ca/en/ppg-speedhide-pro-ev-interior-wall-primer-flat-white-18-9l-1013405",
+      "sku": "1013405",
+      "query": "paint primer",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
+    {
+      "store": "Kent",
+      "name": "GoPrime Tintable Transition Primer Interior & Exterior 946mL",
+      "price": 26.99,
+      "url": "https://kent.ca/en/goprime-tintable-transition-primer-interior-exterior-946ml-1051144",
+      "sku": "1051144",
+      "query": "paint primer",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
+    {
+      "store": "Kent",
+      "name": "5/8\" Sheathing T&T OSB",
+      "price": 84.99,
+      "url": "https://kent.ca/en/5-8-sheathing-tt-osb-1102899",
+      "sku": "1102899",
+      "query": "deck board 8 ft",
+      "currency": "CAD",
+      "unit": "",
+      "location": "Store not verified — website/default location",
+      "store_verified": false,
+      "stock": null,
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
+    },
     {
       "store": "Home Depot Canada",
       "name": "#8 x 3-inch Brown Deck Screws - 900 Pieces",
@@ -15,7 +325,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -29,7 +339,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -43,7 +353,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -57,7 +367,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -71,7 +381,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -85,7 +395,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -99,7 +409,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -113,7 +423,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -127,7 +437,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -141,7 +451,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -155,7 +465,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -169,7 +479,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -183,7 +493,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -197,7 +507,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -211,7 +521,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -225,7 +535,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -239,7 +549,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -253,7 +563,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -267,7 +577,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -281,7 +591,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -295,7 +605,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -309,7 +619,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -323,7 +633,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Home Depot Canada",
@@ -337,7 +647,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -351,7 +661,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 78,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -365,7 +675,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 1,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -379,7 +689,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 3,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -393,7 +703,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -407,7 +717,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": null,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -421,7 +731,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": null,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -435,7 +745,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": null,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -449,7 +759,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -463,7 +773,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 6,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -477,7 +787,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": null,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -491,7 +801,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -505,7 +815,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": null,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -519,7 +829,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 4,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -533,7 +843,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 3,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -547,7 +857,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 3,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -561,7 +871,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 9,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -575,7 +885,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 1,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -589,7 +899,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 6,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -603,7 +913,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 3,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -617,7 +927,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": null,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -631,7 +941,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 11,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -645,7 +955,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 17,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -659,7 +969,7 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     },
     {
       "store": "Canadian Tire",
@@ -673,13 +983,21 @@
       "location": "Store not verified — website/default location",
       "store_verified": false,
       "stock": 0,
-      "checked_at": "2026-11-22T21:48:13.061067+00:00"
+      "checked_at": "2026-11-22T22:14:12.339042+00:00"
     }
+  ],
+  "last_query": null,
+  "last_checked_suppliers": [
+    "Kent",
+    "Home Depot Canada",
+    "RONA",
+    "Home Hardware",
+    "Canadian Tire"
   ],
   "suppliers": {
     "Kent": {
-      "status": "no_valid_prices",
-      "offers": 0,
+      "status": "results",
+      "offers": 22,
       "store": "unverified"
     },
     "Home Depot Canada": {
@@ -693,8 +1011,9 @@
       "store": "unverified"
     },
     "Home Hardware": {
-      "status": "no_valid_prices",
+      "status": "error",
       "offers": 0,
+      "detail": "Home Hardware requires category URLs; keyword search is unsupported",
       "store": "unverified"
     },
     "Canadian Tire": {
