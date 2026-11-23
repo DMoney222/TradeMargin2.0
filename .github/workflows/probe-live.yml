@@ -22,3 +22,5 @@ jobs:
 
       - name: Test alternative Canadian retailers
         run: node worker/probe/alternates.mjs
+      - name: Test Home Depot public product-search endpoint
+        run: node worker/probe/home-depot.mjs
