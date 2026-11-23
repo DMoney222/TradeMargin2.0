@@ -349,10 +349,13 @@ function showItemPriceResults(item,holder){
    if(!matches.length){
      const online=payload.onlineStatus?.[store];
      const account=online?.status==="account_required";
-     const blocked=/403|blocked|inaccessible/i.test(online?.note||"");
+     const blocked=Number(online?.failures?.access_denied||0)>0||/403|blocked|inaccessible/i.test(online?.note||"");
      card.append(el("p","hint",account?
        "🔒 Account pricing required. This electrical distributor does not publish your trade price. Open your account or request a quote, then enter the actual price below.":
-       blocked?"⚠️ Automated access blocked by this supplier; that is not an out-of-stock result. Open its product page to verify the price.":
+       blocked?"⚠️ Supplier denied automated access (HTTP 403). This does not mean out of stock; verify on the retailer site.":
+       online?.status==="unverified_currency"?"⚠️ Price found but CAD currency was not explicitly verified, so it was excluded from automatic estimates.":
+       Number(online?.failures?.rate_limited||0)>0?"⚠️ Supplier rate-limited automated requests. Check directly or retry later; stock is unknown.":
+       Number(online?.failures?.timeout||0)>0?"⚠️ Supplier request timed out. No availability conclusion can be drawn; check directly.":
        "No exact, verifiable CAD price was returned. You can check the retailer and enter a quoted price below."));
    }
    if(matches.length){found+=matches.length;
