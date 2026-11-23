@@ -4,6 +4,7 @@
  * No paid API, no fabricated "live" prices, no local-stock claims.
  */
 const VERSION="3.1.0";
+const BUILD_TAG="independent-kent-onsite-search-2026-11-22";
 const SHOPS={
   "Kent":"kent.ca",
   "Home Depot Canada":"homedepot.ca",
@@ -310,7 +311,7 @@ export default {
   if(request.method==="OPTIONS")return new Response(null,{status:204,headers:CORS});
   if(request.method!=="GET")return response({error:"GET only"},405);
   const u=new URL(request.url);
-  if(u.pathname==="/health")return response({ok:true,service:"TradeMargin Independent Research",version:VERSION,paid_api:false,
+  if(u.pathname==="/health")return response({ok:true,service:"TradeMargin Independent Research",version:VERSION,build:BUILD_TAG,paid_api:false,
    discovery:"known product pages + index fallback",last_price_test:"not verified at deployment"});
   if(u.pathname!=="/search")return response({error:"Use /search?query=..."},404);
   const query=(u.searchParams.get("query")||"").trim();
