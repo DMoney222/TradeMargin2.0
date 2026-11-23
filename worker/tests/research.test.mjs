@@ -42,7 +42,7 @@ test("service responds with version and correct API mode",async()=>{
  const r=await worker.fetch(new Request("https://trademargin.test/health"),{},ctx);
  const value=await r.json();
  assert.equal(value.ok,true);
- assert.equal(value.version,"3.6.2");
+ assert.equal(value.version,"3.6.3");
  assert.equal(value.paid_api,false);
 });
 test("finds only correct 5/4x6x8 pressure-treated prices and ignores stores without prices",async()=>{
@@ -51,9 +51,9 @@ test("finds only correct 5/4x6x8 pressure-treated prices and ignores stores with
  const r=await worker.fetch(req,{},ctx);
  assert.equal(r.status,200);
  const data=await r.json();
- assert.equal(data.offers.length,4,JSON.stringify(data.suppliers));
+ assert.equal(data.offers.length,3,JSON.stringify(data.suppliers));
  const byStore=Object.fromEntries(data.offers.map(o=>[o.store,o]));
- assert.equal(byStore["Lyons Timber Mart (Ontario)"]?.price,8.25);
+ assert.equal(byStore["Lyons Timber Mart (Ontario)"],undefined,"inferred CAD must not enter verified offers");
  assert.equal(byStore.Kent.price,7.99);
  assert.equal(byStore["Home Depot Canada"].price,5.29);
  assert.equal(byStore.RONA.price,8.8);
@@ -180,4 +180,13 @@ test("supplier diagnostics count access-denied failures without treating them as
  assert.ok(supplier.failures.access_denied>=1,JSON.stringify(supplier));
  assert.match(supplier.note,/does not mean products are unavailable/i);
  assert.equal(result.offers.some(x=>x.store==="Home Depot Canada"),false);
+});
+
+
+test("inferred-currency Lyons reference cannot enter verified CAD offers",async()=>{
+ makeMock();
+ const data=await (await worker.fetch(new Request("https://test.local/search?query="+encodeURIComponent("Deck boards pressure treated 5/4 x 6 x 8 ft")),{},ctx)).json();
+ assert.equal(data.offers.some(o=>o.price_currency_inferred===true),false);
+ assert.equal(data.offers.some(o=>o.currency_verified!==true),false);
+ assert.equal(data.suppliers["Lyons Timber Mart (Ontario)"].count,1,"reference remains diagnosed but is excluded from verified offers");
 });
