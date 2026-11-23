@@ -42,7 +42,7 @@ test("service responds with version and correct API mode",async()=>{
  const r=await worker.fetch(new Request("https://trademargin.test/health"),{},ctx);
  const value=await r.json();
  assert.equal(value.ok,true);
- assert.equal(value.version,"3.6.4");
+ assert.equal(value.version,"3.6.5");
  assert.equal(value.paid_api,false);
 });
 test("finds only correct 5/4x6x8 pressure-treated prices and ignores stores without prices",async()=>{
@@ -235,4 +235,22 @@ test("BMR accepts only exact product matches with explicit CAD structured Offer 
  assert.equal(offer.currency_verified,true);
  assert.equal(offer.store_verified,false);
  assert.equal(offer.stock_verified,false);
+});
+
+// A listed price is not a purchasable offer when the merchant explicitly marks it unavailable.
+test("explicitly unavailable JSON-LD offers are excluded while InStock offers remain",async()=>{
+ const calls=makeMock();
+ const original=globalThis.fetch;
+ globalThis.fetch=async input=>{
+  const url=String(input);
+  if(url.includes("5-4-x-6-x-8-brown-pressure-treated-decking"))
+   return new Response(CAD("5/4 x 6 x 8 Brown Pressure Treated Decking",7.99).replace('"priceCurrency":"CAD"','"priceCurrency":"CAD","availability":"https://schema.org/OutOfStock"'),{status:200});
+  if(url.includes("pressure-treated-5-4-x-6-x-8-premium-wood-decking"))
+   return new Response(CAD("Pressure Treated 5/4 x 6 x 8 Premium Wood Decking",5.29).replace('"priceCurrency":"CAD"','"priceCurrency":"CAD","availability":"https://schema.org/InStock"'),{status:200});
+  return original(input);
+ };
+ const r=await worker.fetch(new Request("https://trademargin.test/search?query="+encodeURIComponent("Deck boards pressure treated 5/4 x 6 x 8 ft")),{},ctx);
+ const data=await r.json();
+ assert.equal(data.offers.some(o=>o.store==="Kent"),false);
+ assert.equal(data.offers.some(o=>o.store==="Home Depot Canada"),true);
 });
