@@ -163,7 +163,7 @@ function exactEnough(query,productName){
   const need=fastenerInches(q);
   const got=fastenerInches(p);
   if(need!==null&&(got===null||Math.abs(need-got)>0.03))return false;
-  const gauge=q.match(/#\\s*(\\d+)/),stock=p.match(/#\\s*(\\d+)/);
+  const gauge=q.match(/#\s*(\d+)/),stock=p.match(/#\s*(\d+)/);
   if(gauge&&(!stock||gauge[1]!==stock[1]))return false;
  }
  const qs=lumberSize(q);
