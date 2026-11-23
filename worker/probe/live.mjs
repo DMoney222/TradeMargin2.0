@@ -56,11 +56,11 @@ for(const path of [
    .map(x=>x[1]).filter(x=>/screw|deck|wood/i.test(x)).slice(0,4);
   const at=r.body.indexOf("product-item-link");
   const at2=r.body.indexOf("product-item");
-  const dom=r.body.match(/<a\\b[^>]*class=["'][^"']*product-item-link[^"']*["'][^>]*>/i);
+  const dom=r.body.match(/<a\b[^>]*class=["'][^"']*product-item-link[^"']*["'][^>]*>/i);
   const domAt=dom?dom.index:-1;
-  const domSnip=dom? r.body.slice(domAt,domAt+800).replace(/\\s+/g," ").slice(0,480):"";
+  const domSnip=dom?r.body.slice(domAt,domAt+800).replace(/\s+/g," ").slice(0,480):"";
   const listAt=r.body.indexOf('id="product-list"');
-  const ldCount=[...r.body.matchAll(/<script\\b([^>]*)>/gi)].filter(m=>/application\\/ld\\+json/i.test(m[1])).length;
+  const ldCount=[...r.body.matchAll(/<script\b([^>]*)>/gi)].filter(m=>/application\/ld\+json/i.test(m[1])).length;
   const after=at>=0?r.body.slice(Math.max(0,at-200),at+900).replace(/\s+/g," ").slice(0,500):"";
   console.log("QUERY PAGE",path,"HTTP",r.http,"LEN",r.body.length,"TITLE",title.trim().slice(0,100),"LINKS",JSON.stringify(productLinks),"ITEM_OFFSET",at,"FIRST_PRODUCT_OFFSET",at2,"REAL_ITEM",domAt,"LIST",listAt,"JSONLD",ldCount,"PRODUCT_SNIPPET",after,"REAL_SNIP",domSnip);
  }catch(e){console.log("QUERY ERROR",path,String(e).slice(0,140))}
