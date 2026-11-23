@@ -118,7 +118,8 @@ function itemType(value){
  if(/drywall|gypsum/.test(t)&&/sheet|panel|board/.test(t))return "drywall-sheet";
  if(/pex/.test(t)&&/elbow|coupling|tee|adapter|fitting|valve|connector/.test(t))return "pex-fitting";
  if(/pex/.test(t)&&/pipe|tubing/.test(t))return "pex-pipe";
- if(/14\s*[/\-]\s*2/.test(t)&&/wire|cable|romex|nmd90|ac90/.test(t))return "14-2-wire";
+ const gauge=t.match(/\b(6|8|10|12|14)\s*[/\-]\s*([234])\b/);
+ if(gauge&&/wire|cable|romex|loomex|nmd90|ac90/.test(t))return gauge[1]+"-"+gauge[2]+"-wire";
  if(/primer/.test(t))return "primer";
  if(/shingle/.test(t))return "shingles";
  if(/roofing/.test(t)&&/nail/.test(t))return "roofing-nails";
@@ -155,6 +156,12 @@ function fastenerLengthInches(label){
  if(raw.includes("/")){const f=raw.split("/");return Number(f[0])/Number(f[1])}
  return Number(raw);
 }
+function wireLengthMetres(value){
+ const t=String(value||"");
+ const m=t.match(/\b(\d+(?:\.\d+)?)\s*(m|metres?|meters?|ft|feet)\b/i);
+ if(!m)return null;
+ return Number(m[1])*(m[2].toLowerCase().startsWith("f")?0.3048:1);
+}
 function classifyMatch(item,offer){
  const query=String(item.name||""),name=String(offer.name||"");
  const wanted=itemType(query),product=itemType(name);
@@ -169,7 +176,15 @@ function classifyMatch(item,offer){
  if(wanted==="deck-board"&&boardMaterial(item)==="composite"&&!composite)return null;
  if(wanted==="deck-board"&&boardMaterial(item)==="natural"&&(composite||isPT))return null;
  if(/composite/i.test(query)&&!composite)return null;
- if(/nmd90/i.test(query)&&/ac90/i.test(name))return null;
+ if(/nmd90|romex|loomex/i.test(query)&&/ac90|armou?red|bx cable/i.test(name))return null;
+ if(/ac90|armou?red|bx cable/i.test(query)&&/nmd90|romex|loomex/i.test(name))return null;
+ if(/-wire$/.test(wanted)){
+   const length=wireLengthMetres(query);
+   if(length!==null){
+     const offered=wireLengthMetres(name);
+     if(offered===null||Math.abs(offered-length)>0.2)return null;
+   }
+ }
  if(wanted==="deck-screws"||wanted==="drywall-screws"){
    const requested=fastenerLengthInches(query);
    if(requested!==null){
