@@ -327,6 +327,7 @@ function showItemPriceResults(item,holder){
  if(payload.error){holder.append(el("p","hint",payload.error));return}
  const stamp=el("p","hint","Results from published supplier data: "+payload.checked+" Choose one product separately for each supplier. Listings are not verified local-store prices.");
  holder.append(stamp);
+ if(payload.comparisonWarning)holder.append(el("p","notice","⚠️ "+payload.comparisonWarning));
  let found=0;
  for(const store of priceSuppliers){
    if(["Graybar Canada","WESCO Canada","Eddy Group"].includes(store)&&!electricalMaterial(item))continue;
@@ -431,7 +432,7 @@ async function autoCheckPrices(onlyId=null){
      else if(missingSize)error="Select thickness, width and length before searching for this wood product. Accurate dimensions are required.";
      const byStore=Object.fromEntries(priceSuppliers.map(store=>[store,[]]));
      let liveStatus=service?"Online research not attempted":"Research backend not connected";
-     let liveOffers=[],onlineStatus={};
+     let liveOffers=[],onlineStatus={},comparisonWarning=null;
      if(!error&&service){
        const query=researchQuery(item);
        liveStatus="Searching public web…";
@@ -442,6 +443,7 @@ async function autoCheckPrices(onlyId=null){
          const online=await liveResponse.json();
          if(!liveResponse.ok)throw Error(online.error||"HTTP "+liveResponse.status);
          onlineStatus=online.suppliers||{};
+         comparisonWarning=typeof online.comparison_warning==="string"?online.comparison_warning:null;
          liveOffers=(Array.isArray(online.offers)?online.offers:[]).filter(o=>o.currency==="CAD"&&o.currency_verified&&Number(o.price)>0&&priceSuppliers.includes(o.store)&&typeof o.url==="string");
          liveStatus=liveOffers.length?liveOffers.length+" retailer-priced listings researched"+(online.cached?" (cached)":""):"Web research returned no usable retailer prices for this item";
        }catch(err){liveStatus="Web search unavailable: "+err.message}
@@ -466,7 +468,7 @@ async function autoCheckPrices(onlyId=null){
      }
      const verifiedWhen=verified.updated_at?new Date(verified.updated_at).toLocaleString():"not available";
      const sourceNote=" Saved listing examples last checked "+verifiedWhen+".";
-     searchResultsById.set(item.id,{byStore,onlineStatus,checked:"Automatic research: "+liveStatus+". Historical supplier feed: "+checked+"."+sourceNote,updated:feed.updated_at,error});
+     searchResultsById.set(item.id,{byStore,onlineStatus,comparisonWarning,checked:"Automatic research: "+liveStatus+". Historical supplier feed: "+checked+"."+sourceNote,updated:feed.updated_at,error});
      const result=document.getElementById("price-for-"+item.id);
      if(result)showItemPriceResults(item,result);
    }
