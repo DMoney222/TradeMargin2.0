@@ -3,8 +3,8 @@
  * Cloudflare Worker: public retailer pages, verified CAD amounts only.
  * No paid API, no fabricated "live" prices, no local-stock claims.
  */
-const VERSION="3.6.5";
-const BUILD_TAG="exclude-unavailable-offers-v3-6-5";
+const VERSION="3.6.6";
+const BUILD_TAG="exclude-unavailable-meta-offers-v3-6-6";
 const SHOPS={
   "Kent":"kent.ca",
   "Home Depot Canada":"homedepot.ca",
@@ -127,7 +127,9 @@ function productData(doc,url,store){
   const price=Number(String(m["product:price:amount"]||m["og:price:amount"]||"").replace(/,/g,""));
   const currency=String(m["product:price:currency"]||m["og:price:currency"]||"").toUpperCase();
   const name=stripHtml(m["og:title"]||m["twitter:title"]||"");
-  if(name&&currency==="CAD"&&Number.isFinite(price)&&price>0&&price<100000)
+  const availability=String(m["product:availability"]||m["og:availability"]||m["availability"]||"").split("/").pop().toLowerCase().replace(/[^a-z]/g,"");
+  if(name&&currency==="CAD"&&Number.isFinite(price)&&price>0&&price<100000&&
+     !["outofstock","soldout","discontinued","preorder","presale"].includes(availability))
    output.push({store,name,price,currency:"CAD",currency_verified:true,url,
      checked_at:now(),source:"Retailer product price metadata",store_verified:false,stock_verified:false});
  }
