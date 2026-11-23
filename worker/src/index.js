@@ -3,7 +3,7 @@
  * Cloudflare Worker: public retailer pages, verified CAD amounts only.
  * No paid API, no fabricated "live" prices, no local-stock claims.
  */
-const VERSION="3.3.0";
+const VERSION="3.4.0";
 const BUILD_TAG="kent-category-search-exact-dimensions-v3-2";
 const SHOPS={
   "Kent":"kent.ca",
@@ -11,7 +11,10 @@ const SHOPS={
   "RONA":"rona.ca",
   "Home Hardware":"homehardware.ca",
   "Canadian Tire":"canadiantire.ca",
-  "Lyons Timber Mart (Ontario)":"lyonstimbermart.ca"
+  "Lyons Timber Mart (Ontario)":"lyonstimbermart.ca",
+  "Graybar Canada":"graybarcanada.com",
+  "WESCO Canada":"buy.wesco.ca",
+  "Eddy Group":"eddygroup.com"
 };
 const ORIGIN="https://dmoney222.github.io";
 const CORS={
@@ -275,6 +278,9 @@ async function kentQueryLinks(query){
 }
 async function searchStore(store,site,query){
  const s={store,checked:0,count:0,status:"no_prices",source:"public web"};
+ if(store==="Graybar Canada"||store==="Eddy Group"){
+  return {offers:[],status:{...s,status:"account_required",note:"Product pricing requires a distributor login/approved trade account. TradeMargin cannot access account-specific prices without an authorized integration."}};
+ }
  const urls=[];
  const add=url=>{if(permitted(url,site)&&!urls.includes(url)&&urls.length<9)urls.push(url)};
  if(isDeck5Quarter6x8(query)){
