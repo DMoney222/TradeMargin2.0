@@ -162,6 +162,12 @@ function wireLengthMetres(value){
  if(!m)return null;
  return Number(m[1])*(m[2].toLowerCase().startsWith("f")?0.3048:1);
 }
+function fastenerPackageCount(label){
+ const t=String(label||"").toLowerCase().replace(/,/g,"");
+ const m=t.match(/\b(\d{1,5})\s*(?:-|\s)?(?:pk|pack|pcs|pieces|count|ct)\b/) ||
+         t.match(/\b(?:pack|box)\s+of\s+(\d{1,5})\b/);
+ return m?Number(m[1]):null;
+}
 function classifyMatch(item,offer){
  const query=String(item.name||""),name=String(offer.name||"");
  const wanted=itemType(query),product=itemType(name);
@@ -191,6 +197,8 @@ function classifyMatch(item,offer){
      const offered=fastenerLengthInches(name);
      if(offered===null||Math.abs(offered-requested)>0.03)return null;
    }
+   const requestedPack=fastenerPackageCount(query);
+   if(requestedPack!==null&&fastenerPackageCount(name)!==requestedPack)return null;
  }
  const d=item.dimensions||{};
  if(d.thickness||d.width||d.length){
