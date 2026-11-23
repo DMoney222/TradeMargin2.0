@@ -41,3 +41,19 @@ for(const [store,url] of Object.entries(urls)){
   console.log("RETAILER",store,"HTTP",r.http,"BYTES",r.body.length,"JSONLD",scripts,"META",amt.slice(0,300));
  }catch(e){console.log("RETAILER",store,"ERROR",String(e).slice(0,250))}
 }
+
+console.log("GENERIC KENT SEARCH DISCOVERY:");
+for(const path of [
+ "https://kent.ca/en/catalogsearch/result/?q=deck%20screws",
+ "https://kent.ca/en/search?q=deck%20screws",
+ "https://kent.ca/en/catalogsearch/result/?q=pressure%20treated%20decking",
+ "https://www.homedepot.ca/search?q=pressure%20treated%20decking"
+]){
+ try{
+  const r=await get(path,12000);
+  const title=(r.body.match(/<title[^>]*>([\s\S]*?)<\/title>/i)||[])[1]||"none";
+  const productLinks=[...r.body.matchAll(/href=["'](https:\/\/(?:www\.)?(?:kent\.ca|homedepot\.ca)\/(?:en\/|product\/)[^"']+)["']/g)]
+   .map(x=>x[1]).filter(x=>/screw|deck|wood/i.test(x)).slice(0,4);
+  console.log("QUERY PAGE",path,"HTTP",r.http,"LEN",r.body.length,"TITLE",title.trim().slice(0,100),"LINKS",JSON.stringify(productLinks));
+ }catch(e){console.log("QUERY ERROR",path,String(e).slice(0,140))}
+}
