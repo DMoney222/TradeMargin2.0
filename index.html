@@ -293,7 +293,13 @@ function showItemPriceResults(item,holder){
    const search=el("a","secondary","🔎 Search "+store+" on Google / Safari ↗");
    search.href=googleProductUrl(item,store);search.target="_blank";search.rel="noopener noreferrer";
    card.append(search,el("p","hint","Google search is restricted to "+store+"'s website and includes this item's dimensions. Open the result in Safari, check the product and price, then return here."));
-   if(!matches.length){card.append(el("p","hint","No verified match in the collected data. You can still research it on Google and enter its price below."));}
+   if(!matches.length){
+     const online=payload.onlineStatus?.[store];
+     const blocked=/403|blocked|inaccessible/i.test(online?.note||"");
+     card.append(el("p","hint",blocked?
+       "This retailer restricted automated access. That does not mean the product is out of stock. Use the retailer link to confirm a price.":
+       "No exact verified price was returned for this supplier. You can research it on Google and enter its price below."));
+   }
    if(matches.length){found+=matches.length;
    const label=el("label","", "Matching product — "+store),select=el("select");
    matches.forEach((entry,j)=>{const opt=el("option","",entry.o.name+" — "+money(entry.o.price)+" ("+packageDescription(entry.o.name)+")");opt.value=String(j);select.append(opt)});
@@ -370,7 +376,7 @@ async function autoCheckPrices(onlyId=null){
      else if(missingSize)error="Select thickness, width and length before searching for this wood product. Accurate dimensions are required.";
      const byStore=Object.fromEntries(priceSuppliers.map(store=>[store,[]]));
      let liveStatus=service?"Online research not attempted":"Research backend not connected";
-     let liveOffers=[];
+     let liveOffers=[],onlineStatus={};
      if(!error&&service){
        const query=researchQuery(item);
        liveStatus="Searching public web…";
@@ -380,20 +386,32 @@ async function autoCheckPrices(onlyId=null){
          const liveResponse=await fetch(endpoint,{signal:AbortSignal.timeout(58000)});
          const online=await liveResponse.json();
          if(!liveResponse.ok)throw Error(online.error||"HTTP "+liveResponse.status);
+         onlineStatus=online.suppliers||{};
          liveOffers=(Array.isArray(online.offers)?online.offers:[]).filter(o=>o.currency==="CAD"&&o.currency_verified&&Number(o.price)>0&&priceSuppliers.includes(o.store)&&typeof o.url==="string");
          liveStatus=liveOffers.length?liveOffers.length+" retailer-priced listings researched"+(online.cached?" (cached)":""):"Web research returned no usable retailer prices for this item";
        }catch(err){liveStatus="Web search unavailable: "+err.message}
      }
      if(!error){
+       // Prefer live observations over dated snapshots for the same retailer URL.
+       const seenUrls=new Set();
        for(const o of [...liveOffers,...combined]){
          if(!byStore[o.store])continue;
+         const sourceKey=o.store+"|"+String(o.url||"");
+         if(o.url&&seenUrls.has(sourceKey))continue;
          const match=classifyMatch(item,o);
-         if(match)byStore[o.store].push(match);
+         if(match){
+           byStore[o.store].push(match);
+           if(o.url)seenUrls.add(sourceKey);
+         }
        }
-       for(const store of priceSuppliers)byStore[store].sort((a,b)=>b.score-a.score||a.warnings.length-b.warnings.length||a.o.price-b.o.price).splice(6);
+       for(const store of priceSuppliers)byStore[store].sort((a,b)=>
+         b.score-a.score||a.warnings.length-b.warnings.length||
+         Date.parse(b.o.checked_at||"1970")-Date.parse(a.o.checked_at||"1970")||
+         a.o.price-b.o.price).splice(6);
      }
-     const sourceNote=research.updated_at?" Independent web research last ran "+new Date(research.updated_at).toLocaleString()+" for: "+research.query+".":" Independent web research has not been run yet.";
-     searchResultsById.set(item.id,{byStore,checked:checked+"."+sourceNote+" "+liveStatus+".",updated:feed.updated_at,error});
+     const verifiedWhen=verified.updated_at?new Date(verified.updated_at).toLocaleString():"not available";
+     const sourceNote=" Saved listing examples last checked "+verifiedWhen+".";
+     searchResultsById.set(item.id,{byStore,onlineStatus,checked:"Automatic research: "+liveStatus+". Historical supplier feed: "+checked+"."+sourceNote,updated:feed.updated_at,error});
      const result=document.getElementById("price-for-"+item.id);
      if(result)showItemPriceResults(item,result);
    }
