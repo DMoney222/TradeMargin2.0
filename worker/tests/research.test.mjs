@@ -40,7 +40,7 @@ test("service responds with version and correct API mode",async()=>{
  const r=await worker.fetch(new Request("https://trademargin.test/health"),{},ctx);
  const value=await r.json();
  assert.equal(value.ok,true);
- assert.equal(value.version,"3.4.0");
+ assert.equal(value.version,"3.5.0");
  assert.equal(value.paid_api,false);
 });
 test("finds only correct 5/4x6x8 pressure-treated prices and ignores stores without prices",async()=>{
@@ -98,4 +98,28 @@ test("trade distributor prices are not fabricated without approved account acces
  assert.equal(data.suppliers["Graybar Canada"].status,"account_required");
  assert.equal(data.suppliers["Eddy Group"].status,"account_required");
  assert.equal(data.offers.filter(o=>o.store==="Graybar Canada"||o.store==="Eddy Group").length,0);
+});
+
+test("14/2 75m wire does not return 12/2 or 14/3 or 150m cable",async()=>{
+ makeMock();
+ const originalFetch=globalThis.fetch;
+ const names=[
+  "Southwire 14/2 NMD90 75M Romex SIMpull Electrical Wire - White",
+  "Southwire 14/2 NMD90 150M Romex SIMpull Electrical Wire - White",
+  "Southwire 12/2 NMD90 75M Romex SIMpull Electrical Wire - Yellow"
+ ];
+ const urls=names.map((_,i)=>"https://www.homedepot.ca/product/electrical-wire-"+(10000001+i));
+ globalThis.fetch=async(url)=>{
+  url=String(url);
+  if(url.includes("bing.com")&&url.includes("homedepot.ca")){
+   return new Response('<rss><channel>'+urls.map(link=>'<item><link>'+link+'</link></item>').join('')+'</channel></rss>',{status:200});
+  }
+  const idx=urls.indexOf(url);
+  if(idx>=0)return new Response(CAD(names[idx],idx?99:79),{status:200});
+  return originalFetch(url);
+ };
+ const result=await (await worker.fetch(new Request("https://test.local/search?query="+encodeURIComponent("14/2 NMD90 75m cable")),{},ctx)).json();
+ const offers=result.offers.filter(x=>x.store==="Home Depot Canada");
+ assert.equal(offers.length,1,JSON.stringify(offers));
+ assert.equal(offers[0].name,names[0]);
 });
