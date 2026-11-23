@@ -48,7 +48,7 @@ const trades={
 const vendors=["Kent","Home Depot Canada","RONA","Home Hardware","Canadian Tire","Wolseley","EMCO","Guillevin","Westburne","Nedco","Grainger","Local supplier"];
 const $=id=>document.getElementById(id),num=x=>Math.max(0,Number(x)||0),money=x=>new Intl.NumberFormat("en-CA",{style:"currency",currency:"CAD"}).format(x),fields=["project","trade","city","hours","rate","markup","tax","stopHours","shoppingRate","fuel","other","projectCosts"];
 let items=[];let latestFeed=null;const searchResultsById=new Map();
-const priceSuppliers=["Kent","Home Depot Canada","RONA","Home Hardware","Canadian Tire","Lyons Timber Mart (Ontario)"];
+const priceSuppliers=["Kent","Home Depot Canada","RONA","Home Hardware","Canadian Tire","Lyons Timber Mart (Ontario)","Graybar Canada","WESCO Canada","Eddy Group"];
 const backendKey="TradeMarginResearchBackend";
 const defaultResearchService="https://trademargin2-0.damonpatrickwalsh.workers.dev";
 function backendUrl(){
@@ -257,7 +257,7 @@ plan.replaceChildren(table,el("p","hint","Supplier visits: "+r.best.used.join(" 
 }
 
 function googleProductQuery(item,store){
- const sites={"Kent":"kent.ca","Home Depot Canada":"homedepot.ca","RONA":"rona.ca","Home Hardware":"homehardware.ca","Canadian Tire":"canadiantire.ca","Lyons Timber Mart (Ontario)":"lyonstimbermart.ca"};
+ const sites={"Kent":"kent.ca","Home Depot Canada":"homedepot.ca","RONA":"rona.ca","Home Hardware":"homehardware.ca","Canadian Tire":"canadiantire.ca","Lyons Timber Mart (Ontario)":"lyonstimbermart.ca","Graybar Canada":"graybarcanada.com","WESCO Canada":"buy.wesco.ca","Eddy Group":"eddygroup.com"};
  const d=item.dimensions||{};
  let parts=[item.name];
  if(itemType(item.name)==="deck-board"){
@@ -306,6 +306,7 @@ function showItemPriceResults(item,holder){
    const card=el("div","item"),h=el("h4","",store);
    card.append(h);
    if(store==="Lyons Timber Mart (Ontario)")card.append(el("p","notice","⚠️ Ontario-only price reference. This supplier is not local to Moncton. Do not assume pickup or delivery is available in New Brunswick."));
+   if(["Graybar Canada","WESCO Canada","Eddy Group"].includes(store))card.append(el("p","hint","⚡ Electrical distributor: public product listings may not show contractor prices. Log into your own distributor account to check your negotiated pricing, then enter it below. TradeMargin does not request your login details."));
    const search=el("a","secondary","🔎 Search "+store+" on Google / Safari ↗");
    search.href=googleProductUrl(item,store);search.target="_blank";search.rel="noopener noreferrer";
    card.append(search,el("p","hint","Google search is restricted to "+store+"'s website and includes this item's dimensions. Open the result in Safari, check the product and price, then return here."));
