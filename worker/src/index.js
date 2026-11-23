@@ -3,8 +3,8 @@
  * Cloudflare Worker: public retailer pages, verified CAD amounts only.
  * No paid API, no fabricated "live" prices, no local-stock claims.
  */
-const VERSION="3.6.0";
-const BUILD_TAG="fastener-package-precision-v3-6";
+const VERSION="3.6.1";
+const BUILD_TAG="aggregate-offer-guard-v3-6-1";
 const SHOPS={
   "Kent":"kent.ca",
   "Home Depot Canada":"homedepot.ca",
@@ -105,7 +105,10 @@ function productData(doc,url,store){
    const offers=Array.isArray(p.offers)?p.offers:[p.offers];
    for(const o of offers){
     if(!o||typeof o!=="object")continue;
-    const price=Number(String(o.price??o.lowPrice??"").replace(/,/g,""));
+    const offerTypes=Array.isArray(o["@type"])?o["@type"]:[o["@type"]];
+    if(!offerTypes.some(type=>String(type).split("/").pop()==="Offer"))continue;
+    if(o.price===undefined||o.price===null||String(o.price).trim()==="")continue;
+    const price=Number(String(o.price).replace(/,/g,""));
     const currency=String(o.priceCurrency||p.priceCurrency||"").toUpperCase();
     if(currency!=="CAD"||!Number.isFinite(price)||price<=0||price>100000)continue;
     const source=typeof o.url==="string"&&permitted(o.url,SHOPS[store])?o.url:url;
