@@ -1,16 +1,28 @@
-# TradeMargin research API
+# TradeMargin 2.0 — Research API
 
-This folder contains TradeMargin's own **public-web research service**. It reads public indexed retailer product pages and extracts explicitly CAD-priced Product/Offer JSON-LD. It does **not** require Apify, another paid search service or an installation on the user's iPad.
+TradeMargin's **automatic material-price research** is deployed as a Cloudflare Worker:
 
-**Limitations:** Search engines can withhold links, retailers can block automated requests and many pages do not publish a structured price. The API only returns prices it actually found. There is no guarantee of all stores, local pricing, or stock. Free Workers have usage/resource limits.
+**https://trademargin2-0.damonpatrickwalsh.workers.dev**
 
-## Deploy without downloading anything
+The website is **https://dmoney222.github.io/TradeMargin2.0/**. Its default research endpoint is already configured. Users do **not** need to download anything, enter API tokens, or set up hosting.
 
-1. Create/log into a Cloudflare account in Safari. Use the free Workers plan.
-2. In GitHub **Settings → Secrets and variables → Actions**, set secrets `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`. Generate the token in Cloudflare with **Workers Scripts: Edit** permissions scoped to your account. Never paste tokens into a website or this chat.
-3. Create GitHub Actions **repository variable** `ENABLE_RESEARCH_DEPLOY=true`.
-4. Open GitHub Actions → **Deploy TradeMargin research API** → Run workflow. The deployment output will show the `https://trademargin-research.<subdomain>.workers.dev` URL.
-5. Open TradeMargin → **Research service URL** → paste that Worker URL and select Save. The website remembers it locally.
-6. Test a material search. Matching retailer results appear below that material. Select a product to add its CAD price.
+## Architecture
 
-The Worker is a publicly reachable API, **not private browsing**. It restricts targets to the five configured retailer domains and returns retailer prices to any caller. For a commercial launch add a managed rate limit and authentication, monitoring, and a more reliable licensed product-search source.
+- `worker/src/index.js`: Product discovery and HTML/JSON-LD extraction. Uses verified CAD product/offer metadata where available. Includes targeted product-page checks and Kent's onsite product catalogue with search-index fallback.
+- `index.html`: Per-material search UI; validates category, treatment, dimensions and screw lengths and groups returned prices under the matching supplier. A selected price is added to the estimate.
+- `data/verified_listings.json`: Dated, manually checked *historical retailer listing examples*. **Never label these as live quotations or Moncton stock.**
+- `data/prices.json`: Older Apify-collected retailer listing data.
+- `worker/tests/research.test.mjs`: Self-contained Node.js mock tests (run by GitHub Actions).
+- `worker/probe/live.mjs`: External end-to-end test against the published Worker (run by GitHub Actions).
+
+## Deployment
+
+Cloudflare **Workers Builds** is connected to this GitHub repository and automatically builds the Worker named `trademargin2-0` when changes are pushed to `main`. GitHub commit checks report **Workers Builds: trademargin2-0**. The website is published independently by the GitHub Pages workflow.
+
+Manual GitHub Actions deployment is **not** required. If builds stop, open the Cloudflare dashboard for the `trademargin2-0` Worker and inspect its Builds tab, repository and branch. `wrangler.toml` is configured for that worker name.
+
+## Important limitations
+
+This is **not** a headless Google Chrome or Safari session. The free Worker fetches public pages. It cannot compel retailers to give access to their websites or local prices. Verified tests on November 22, 2026 returned a real Kent 5/4 × 6 × 8 pressure-treated board price, while Home Depot, RONA and Home Hardware returned HTTP 403 to the Worker. Other sources and catalogue snapshots are shown with their provenance and verification warnings.
+
+Cloudflare free plans and public search indexes have usage, rate and reliability limits. At scale, implement authenticated accounts and proper rate limiting, and obtain licensed retailer price feeds or authorized retail integrations. Never represent scraped data as guaranteed accurate local checkout prices or inventory.
