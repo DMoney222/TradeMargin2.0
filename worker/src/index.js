@@ -3,8 +3,8 @@
  * Cloudflare Worker: public retailer pages, verified CAD amounts only.
  * No paid API, no fabricated "live" prices, no local-stock claims.
  */
-const VERSION="3.6.2";
-const BUILD_TAG="supplier-error-diagnostics-v3-6-2";
+const VERSION="3.6.3";
+const BUILD_TAG="verified-currency-only-v3-6-3";
 const SHOPS={
   "Kent":"kent.ca",
   "Home Depot Canada":"homedepot.ca",
@@ -387,7 +387,7 @@ export default {
    if(hit)return response({...await hit.json(),cached:true});
   }catch{}
   const results=await Promise.all(Object.entries(SHOPS).map(([name,site])=>searchStore(name,site,query)));
-  const offers=results.flatMap(r=>r.offers);
+  const offers=results.flatMap(r=>r.offers).filter(o=>o.currency==="CAD"&&o.currency_verified===true&&o.price_currency_inferred!==true);
   const fastenerQuery=/(?:deck|drywall)-screw|roof-nail/.test(category(query));
   const comparisonWarning=fastenerQuery&&fastenerPackageCount(query)===null?
    "Fastener package quantity not specified. Prices for different pack counts are not directly comparable; specify a pack count (for example, 500 pack) before estimating savings.":null;
