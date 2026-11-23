@@ -194,3 +194,17 @@ test("inferred-currency Lyons reference cannot enter verified CAD offers",async(
  assert.match(data.suppliers["Lyons Timber Mart (Ontario)"].currency_note,/CAD not explicitly confirmed/i);
  assert.equal(data.offers.some(o=>o.store==="Lyons Timber Mart (Ontario)"),false);
 });
+
+
+test("estimator explains supplier failures and unverified currency without claiming out of stock",async()=>{
+ const {readFile}=await import("node:fs/promises");
+ const {fileURLToPath}=await import("node:url");
+ const {resolve,dirname}=await import("node:path");
+ const html=await readFile(resolve(dirname(fileURLToPath(import.meta.url)),"../../index.html"),"utf8");
+ assert.match(html,/online\\?\\.failures\\?\\.access_denied/);
+ assert.match(html,/online\\?\\.failures\\?\\.rate_limited/);
+ assert.match(html,/online\\?\\.failures\\?\\.timeout/);
+ assert.match(html,/online\\?\\.status==="unverified_currency"/);
+ assert.match(html,/does not mean out of stock/);
+ assert.match(html,/CAD currency was not explicitly verified/);
+});
