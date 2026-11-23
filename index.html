@@ -48,7 +48,7 @@ const trades={
 const vendors=["Kent","Home Depot Canada","RONA","Home Hardware","Canadian Tire","Wolseley","EMCO","Guillevin","Westburne","Nedco","Grainger","Local supplier"];
 const $=id=>document.getElementById(id),num=x=>Math.max(0,Number(x)||0),money=x=>new Intl.NumberFormat("en-CA",{style:"currency",currency:"CAD"}).format(x),fields=["project","trade","city","hours","rate","markup","tax","stopHours","shoppingRate","fuel","other","projectCosts"];
 let items=[];let latestFeed=null;const searchResultsById=new Map();
-const priceSuppliers=["Kent","Home Depot Canada","RONA","Home Hardware","Canadian Tire"];
+const priceSuppliers=["Kent","Home Depot Canada","RONA","Home Hardware","Canadian Tire","Lyons Timber Mart (Ontario)"];
 const backendKey="TradeMarginResearchBackend";
 const defaultResearchService="https://trademargin2-0.damonpatrickwalsh.workers.dev";
 function backendUrl(){
@@ -237,7 +237,7 @@ let offers=el("div","offers");item.offers.forEach((o,j)=>{let row=el("div","offe
 if(searchResultsById.has(item.id))showItemPriceResults(item,priceArea);
 list.append(box)});calculate()}
 function search(item,offer){let q=[item.name,offer.store,$("city").value,"price Canada"].filter(Boolean).join(" ");window.open("https://www.google.com/search?q="+encodeURIComponent(q),"_blank","noopener,noreferrer")}
-function offersFor(item){return item.offers.filter(o=>String(o.price).trim()!==""&&Number.isFinite(Number(o.price))&&Number(o.price)>=0&&o.store.trim()).map(o=>({store:o.store,price:num(o.price),url:o.url||""}))}
+function offersFor(item){return item.offers.filter(o=>!o.referenceOnly&&String(o.price).trim()!==""&&Number.isFinite(Number(o.price))&&Number(o.price)>=0&&o.store.trim()).map(o=>({store:o.store,price:num(o.price),url:o.url||""}))}
 function optimize(){let valid=items.filter(i=>i.name.trim()&&num(i.qty)>0),missing=valid.filter(i=>offersFor(i).length===0);
 if(!valid.length||missing.length)return {valid,missing};
 const stores=[...new Set(valid.flatMap(i=>offersFor(i).map(o=>o.store)))];
@@ -257,7 +257,7 @@ plan.replaceChildren(table,el("p","hint","Supplier visits: "+r.best.used.join(" 
 }
 
 function googleProductQuery(item,store){
- const sites={"Kent":"kent.ca","Home Depot Canada":"homedepot.ca","RONA":"rona.ca","Home Hardware":"homehardware.ca","Canadian Tire":"canadiantire.ca"};
+ const sites={"Kent":"kent.ca","Home Depot Canada":"homedepot.ca","RONA":"rona.ca","Home Hardware":"homehardware.ca","Canadian Tire":"canadiantire.ca","Lyons Timber Mart (Ontario)":"lyonstimbermart.ca"};
  const d=item.dimensions||{};
  let parts=[item.name];
  if(itemType(item.name)==="deck-board"){
@@ -285,7 +285,7 @@ function addManuallyResearchedPrice(item,store,price,url){
      if(parsed.protocol!=="https:"||!(parsed.hostname===site||parsed.hostname.endsWith("."+site)))return "Paste the retailer's own product link, not a Google search URL.";
    }catch(e){return "Enter a complete HTTPS product link or leave it blank."}
  }
- const offer={store,price:numeric.toFixed(2),url:source,sourceName:"Price manually checked in retailer listing",checkedAt:new Date().toISOString(),location:"Not store-verified",storeVerified:false};
+ const offer={store,price:numeric.toFixed(2),referenceOnly:store==="Lyons Timber Mart (Ontario)",url:source,sourceName:"Price manually checked in retailer listing",checkedAt:new Date().toISOString(),location:"Not store-verified",storeVerified:false};
  let existing=item.offers.find(o=>o.store===store);
  if(existing)Object.assign(existing,offer);else item.offers.push(offer);
  render();$("priceStatus").textContent="Added "+money(numeric)+" from "+store+" to "+item.name+". Manually researched price: verify pack size, product dimensions and final checkout price.";
@@ -305,6 +305,7 @@ function showItemPriceResults(item,holder){
    const matches=payload.byStore[store]||[];
    const card=el("div","item"),h=el("h4","",store);
    card.append(h);
+   if(store==="Lyons Timber Mart (Ontario)")card.append(el("p","notice","⚠️ Ontario-only price reference. This supplier is not local to Moncton. Do not assume pickup or delivery is available in New Brunswick."));
    const search=el("a","secondary","🔎 Search "+store+" on Google / Safari ↗");
    search.href=googleProductUrl(item,store);search.target="_blank";search.rel="noopener noreferrer";
    card.append(search,el("p","hint","Google search is restricted to "+store+"'s website and includes this item's dimensions. Open the result in Safari, check the product and price, then return here."));
@@ -323,8 +324,9 @@ function showItemPriceResults(item,holder){
    const link=el("a","","View retailer product ↗");link.target="_blank";link.rel="noopener noreferrer";
    const choose=button("Add this supplier price to estimate",()=>{
      const entry=matches[Number(select.value)],o=entry.o;
+     if(store==="Lyons Timber Mart (Ontario)"&&!confirm("This is a supplier in Ontario, NOT a Moncton store. Use its price only as a rough reference, not as an available local supplier?"))return;
      const newOffer={store,price:String(o.price),url:o.url,sourceName:o.name,source:o.source||"Retailer listing",
-       checkedAt:o.checked_at||payload.updated,location:o.location||"Store not verified",storeVerified:!!o.store_verified};
+       checkedAt:o.checked_at||payload.updated,location:o.location||"Store not verified",storeVerified:!!o.store_verified,referenceOnly:store==="Lyons Timber Mart (Ontario)"};
      const existing=item.offers.find(row=>row.store===store);
      if(existing)Object.assign(existing,newOffer);else item.offers.push(newOffer);
      const current=searchResultsById.get(item.id);
