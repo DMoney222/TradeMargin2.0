@@ -9,8 +9,9 @@ const products={
  "pressure-treated-5-4-x-6-x-8-premium-wood-decking":CAD("Pressure Treated 5/4 x 6 x 8' Premium Wood Decking (Above Ground Use Only)",5.29),
  "pressure-treated-d4s-wood-deck-board-5-4-in-x-6-in-x-8-ft":CAD("Pressure Treated D4S Wood Deck Board 5/4-in x 6-in x 8-ft - Brown",8.80),
  "54-x-6-x-8-pressure-treated-wood-decking":"<html><h1>5/4 x 6 x 8' Pressure Treated Decking</h1><p>Price in store</p></html>",
- "8-x-3-deck-screw-brown":CAD('#8 x 3" Deck Screw Brown 500 Pack',23.99),
- "8-x-2-deck-screw-brown":CAD('#8 x 2" Deck Screw Brown 500 Pack',19.99),
+ "8-x-3-deck-screw-brown-500-pack":CAD('#8 x 3" Deck Screw Brown 500 Pack',23.99),
+ "8-x-3-deck-screw-brown-100-pack":CAD('#8 x 3" Deck Screw Brown 100 Pack',9.99),
+ "8-x-2-deck-screw-brown-500-pack":CAD('#8 x 2" Deck Screw Brown 500 Pack',19.99),
  "5-4x6x8-brown-pressure-treated-decking":'<html><h1>5/4"x6"x8&#39; Brown Pressure Treated Decking</h1><em class="price">$8.25</em><span class="per">Each</span></html>'
 };
 function makeMock(){
@@ -25,6 +26,7 @@ function makeMock(){
   if(url.includes("catalogsearch/result"))
    return new Response('<html><div id="product-list">'+
     '<a class="product-item-link" href="https://kent.ca/en/8-x-3-deck-screw-brown-500-pack-1853850-brn">#8 x 3&quot; Deck Screw Brown 500 Pack</a>'+
+    '<a class="product-item-link" href="https://kent.ca/en/8-x-3-deck-screw-brown-100-pack-1853850-brn">#8 x 3&quot; Deck Screw Brown 100 Pack</a>'+
     '<a class="product-item-link" href="https://kent.ca/en/8-x-2-deck-screw-brown-500-pack-1853850-brn">#8 x 2&quot; Deck Screw Brown 500 Pack</a></div></html>',{status:200});
   if(url.includes("bing.com"))return new Response('<?xml version="1.0"?><rss><channel></channel></rss>',{status:200});
   for(const [key,body] of Object.entries(products)){
@@ -40,7 +42,7 @@ test("service responds with version and correct API mode",async()=>{
  const r=await worker.fetch(new Request("https://trademargin.test/health"),{},ctx);
  const value=await r.json();
  assert.equal(value.ok,true);
- assert.equal(value.version,"3.5.0");
+ assert.equal(value.version,"3.6.0");
  assert.equal(value.paid_api,false);
 });
 test("finds only correct 5/4x6x8 pressure-treated prices and ignores stores without prices",async()=>{
@@ -87,9 +89,9 @@ test("Kent on-site material research rejects wrong screw lengths",async()=>{
  const r=await worker.fetch(new Request("https://trademargin.test/search?query="+encodeURIComponent("deck screws 3 inch")),{},ctx);
  const data=await r.json();
  const kent=data.offers.filter(o=>o.store==="Kent");
- assert.equal(kent.length,1,JSON.stringify(data.suppliers));
- assert.equal(kent[0].name,'#8 x 3" Deck Screw Brown 500 Pack');
- assert.equal(kent[0].price,23.99); // unit test fixture, not an observed retailer price
+ assert.equal(kent.length,2,JSON.stringify(data.suppliers));
+ assert.ok(kent.every(x=>/#8 x 3"/.test(x.name)));
+ assert.equal(kent.find(x=>/500 Pack/.test(x.name)).price,23.99); // mock fixture only
 });
 
 test("trade distributor prices are not fabricated without approved account access",async()=>{
@@ -122,4 +124,16 @@ test("14/2 75m wire does not return 12/2 or 14/3 or 150m cable",async()=>{
  const offers=result.offers.filter(x=>x.store==="Home Depot Canada");
  assert.equal(offers.length,1,JSON.stringify(offers));
  assert.equal(offers[0].name,names[0]);
+});
+
+test("specified screw pack count 500 excludes identical screw sold in 100 pack",async()=>{
+ makeMock();
+ const query="deck screws #8 x 3 inch 500 pack";
+ const r=await worker.fetch(new Request("https://trademargin.test/search?query="+encodeURIComponent(query)),{},ctx);
+ assert.equal(r.status,200);
+ const data=await r.json();
+ const kent=data.offers.filter(o=>o.store==="Kent");
+ assert.equal(kent.length,1,JSON.stringify(data.suppliers));
+ assert.match(kent[0].name,/500 Pack/);
+ assert.equal(kent[0].price,23.99); // mock fixture, NOT a real advertised price
 });
