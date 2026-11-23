@@ -18,6 +18,7 @@ jobs:
         with:
           node-version: '22'
       - run: node worker/probe/live.mjs
+        continue-on-error: true
 
       - name: Test alternative Canadian retailers
         run: node worker/probe/alternates.mjs
