@@ -378,7 +378,11 @@ export default {
   }catch{}
   const results=await Promise.all(Object.entries(SHOPS).map(([name,site])=>searchStore(name,site,query)));
   const offers=results.flatMap(r=>r.offers);
+  const fastenerQuery=/(?:deck|drywall)-screw|roof-nail/.test(category(query));
+  const comparisonWarning=fastenerQuery&&fastenerPackageCount(query)===null?
+   "Fastener package quantity not specified. Prices for different pack counts are not directly comparable; specify a pack count (for example, 500 pack) before estimating savings.":null;
   const payload={query,updated_at:now(),cached:false,version:VERSION,offers,
+   comparison_warning:comparisonWarning,
    suppliers:Object.fromEntries(results.map(r=>[r.status.store,r.status])),
    note:"Only observed CAD prices. No store-specific Moncton or stock verification. Retailers may block automated access; no result does not mean an item is unavailable. Ontario retailer results are out-of-area price references, not local quotes."};
   try{ctx.waitUntil(cache.put(key,new Response(JSON.stringify(payload),
