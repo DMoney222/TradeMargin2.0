@@ -3,7 +3,7 @@
  * Cloudflare Worker: public retailer pages, verified CAD amounts only.
  * No paid API, no fabricated "live" prices, no local-stock claims.
  */
-const VERSION="3.4.0";
+const VERSION="3.5.0";
 const BUILD_TAG="kent-category-search-exact-dimensions-v3-2";
 const SHOPS={
   "Kent":"kent.ca",
@@ -155,7 +155,8 @@ function category(name){
  if(/deck(?:ing)?\s*(?:boards?|planks?)|(?:boards?|planks?)\s*(?:for\s*)?deck(?:ing)?|(?:wood|pressure treated).*decking/i.test(t)||/\bdecking\b/.test(t))return "deck-board";
  if(/pex/.test(t)&&/pipe|tubing/.test(t))return "pex-pipe";
  if(/pex/.test(t)&&/elbow|fitting|adapter|coupling|tee/.test(t))return "pex-fitting";
- if(/14\s*[\/-]\s*2/.test(t)&&/wire|cable|nmd90|romex/.test(t))return "14-2-wire";
+ const gauge=t.match(/\b(6|8|10|12|14)\s*[\/-]\s*([234])\b/);
+ if(gauge&&/wire|cable|romex|loomex|nmd90|ac90/.test(t))return gauge[1]+"-"+gauge[2]+"-wire";
  if(/roofing nails?/.test(t))return "roof-nail";
  if(/shingles?/.test(t))return "shingle";
  return "";
@@ -171,12 +172,26 @@ function fastenerInches(text){
  if(m[1].includes("/")){const f=m[1].split("/");return Number(f[0])/Number(f[1])}
  return Number(m[1]);
 }
+function wireLengthMetres(text){
+ const m=String(text||"").match(/\b(\d+(?:\.\d+)?)\s*(m|metres?|meters?|ft|feet)\b/i);
+ if(!m)return null;
+ return Number(m[1])*(m[2].toLowerCase().startsWith("f")?0.3048:1);
+}
 function exactEnough(query,productName){
  const q=String(query||"").toLowerCase(),p=String(productName||"").toLowerCase();
  const a=category(q),b=category(p);
  if(b==="irrelevant"||b==="tool"||(a&&b!==a))return false;
  if(/pressure[\s-]*treated/.test(q)&&(!/pressure[\s-]*treated/.test(p)||/composite/.test(p)))return false;
  if(/composite/.test(q)&&!/composite/.test(p))return false;
+ if(/nmd90|romex|loomex/.test(q)&&/ac90|armou?red|bx cable/.test(p))return false;
+ if(/ac90|armou?red|bx cable/.test(q)&&/nmd90|romex|loomex/.test(p))return false;
+ if(/-wire$/.test(a)){
+  const length=wireLengthMetres(q);
+  if(length!==null){
+    const got=wireLengthMetres(p);
+    if(got===null||Math.abs(got-length)>0.2)return false;
+  }
+ }
  const fastener=/(?:deck|drywall)-screw|roof-nail/.test(a);
  if(fastener){
   const need=fastenerInches(q);
