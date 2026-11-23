@@ -360,15 +360,18 @@ async function searchStore(store,site,query){
   const key=o.url+"|"+o.price;
   if(!unique.has(key))unique.set(key,o);
  }
- s.count=unique.size;
+ const verified=[...unique.values()].filter(o=>o.currency==="CAD"&&o.currency_verified===true&&o.price_currency_inferred!==true);
+ s.unverified_currency_count=unique.size-verified.length;
+ s.count=verified.length;
+ if(s.unverified_currency_count)s.currency_note="Excluded inferred-currency price references; CAD not explicitly confirmed by retailer metadata.";
  if(Object.keys(failures).length){
   s.failures=Object.fromEntries(Object.entries(failures).sort(([a],[b])=>a.localeCompare(b)));
   s.note="Some supplier pages could not be checked; see failure counts. This does not mean products are unavailable.";
  }
- s.status=s.count?"results":(s.note||s.discovery_error?"limited":"no_prices");
+ s.status=s.count?"results":(s.unverified_currency_count?"unverified_currency":(s.note||s.discovery_error?"limited":"no_prices"));
  if(!urls.length)s.note="No publicly indexed matching retailer pages";
  if(!s.count&&!s.note)s.note="Pages checked but no exact CAD-priced product data found";
- return {offers:[...unique.values()].slice(0,5),status:s};
+ return {offers:verified.slice(0,5),status:s};
 }
 export default {
  async fetch(request,env,ctx){
