@@ -44,17 +44,34 @@ async function fetchText(url, maxBytes=400000) {
   const text=await r.text();
   return text.slice(0,maxBytes);
 }
+
+function discoveryQueries(query){
+  const clean=String(query).replace(/\b(price|cad|canada|inches|inch|feet|foot|ft)\b/gi," ").replace(/\s+/g," ").trim();
+  const isBoard=/deck\s*boards?|decking/i.test(clean);
+  const treated=/pressure[\s-]*treated/i.test(clean);
+  const size=clean.match(/(?:5\/4|\d+(?:\.\d+)?)\s*[x×]\s*\d+(?:\.\d+)?\s*[x×]\s*\d+/i);
+  const broad=isBoard?
+    (treated?"pressure treated decking":"deck boards")+(size?" "+size[0]:""):
+    clean.split(/\s+/).slice(0,5).join(" ");
+  return [...new Set([query,broad].filter(q=>q.length>=3))];
+}
 async function indexSearch(site, query) {
-  const request="https://www.bing.com/search?format=rss&q="+encodeURIComponent("site:"+site+" "+query);
-  const xml=await fetchText(request,200000);
   const urls=[];
-  for(const item of xml.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)){
-    const link=item[1].match(/<link\b[^>]*>([\s\S]*?)<\/link>/i);
-    if(!link)continue;
-    const candidate=decodeXml(link[1].trim());
-    if(hostAllowed(candidate,site)&&!urls.includes(candidate))urls.push(candidate);
+  let lastError="";
+  for(const phrase of discoveryQueries(query)){
+    const request="https://www.bing.com/search?format=rss&q="+encodeURIComponent("site:"+site+" "+phrase);
+    let xml="";
+    try{xml=await fetchText(request,200000)}catch(e){lastError=String(e.message);continue}
+    for(const item of xml.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)){
+      const link=item[1].match(/<link\b[^>]*>([\s\S]*?)<\/link>/i);
+      if(!link)continue;
+      const candidate=decodeXml(link[1].trim());
+      if(hostAllowed(candidate,site)&&!urls.includes(candidate))urls.push(candidate);
+      if(urls.length>=3)break;
+    }
     if(urls.length>=3)break;
   }
+  if(!urls.length&&lastError)throw new Error("Search index unavailable: "+lastError);
   return urls;
 }
 function products(node, out=[]) {
@@ -120,7 +137,7 @@ export default {
     if(url.pathname!=="/search")return reply({error:"Use /search?query=... "},404);
     const query=(url.searchParams.get("query")||"").trim();
     if(query.length<3||query.length>160||/[\u0000-\u001f]/.test(query))return reply({error:"Search query must be 3–160 characters"},400);
-    const key=new Request("https://cache.trademargin.invalid/"+encodeURIComponent(query.toLowerCase()));
+    const key=new Request("https://cache.trademargin.invalid/v2/"+encodeURIComponent(query.toLowerCase()));
     const cache=caches.default;
     const cached=await cache.match(key);
     if(cached){const obj=await cached.json();return reply({...obj,cached:true})}
