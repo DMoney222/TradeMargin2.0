@@ -256,20 +256,20 @@ test("explicitly unavailable JSON-LD offers are excluded while InStock offers re
 });
 
 
-test("product metadata fallback excludes explicitly out-of-stock and preorder offers",async()=>{
+test("metadata fallback excludes unavailable products but retains in-stock CAD offer",async()=>{
  makeMock();
  const previous=globalThis.fetch;
- const links=["https://www.homedepot.ca/product/pressure-treated-decking-10000001","https://www.homedepot.ca/product/pressure-treated-decking-10000002","https://www.homedepot.ca/product/pressure-treated-decking-10000003"];
+ const links=[1,2,3].map(n=>"https://www.homedepot.ca/product/electrical-wire-"+(10000000+n));
  globalThis.fetch=async input=>{
   const url=String(input);
   if(url.includes("bing.com")&&url.includes("homedepot.ca"))return new Response("<rss><channel>"+links.map(link=>"<item><link>"+link+"</link></item>").join("")+"</channel></rss>");
   const index=links.indexOf(url);
-  if(index>=0)return new Response('<meta property="og:title" content="Pressure Treated Deck Board 5/4 x 6 x 8 ft"><meta property="product:price:amount" content="9.99"><meta property="product:price:currency" content="CAD"><meta property="product:availability" content="'+["out of stock","https://schema.org/PreOrder","in stock"][index]+'">');
+  if(index>=0)return new Response('<meta property="og:title" content="Southwire 14/2 NMD90 75m cable"><meta property="product:price:amount" content="79.99"><meta property="product:price:currency" content="CAD"><meta property="product:availability" content="'+["OutOfStock","https://schema.org/PreOrder","InStock"][index]+'">');
   return previous(input);
  };
- const data=await (await worker.fetch(new Request("https://test.local/search?query="+encodeURIComponent("Deck boards pressure treated 5/4 x 6 x 8 ft")),{},ctx)).json();
+ const data=await (await worker.fetch(new Request("https://test.local/search?query="+encodeURIComponent("14/2 NMD90 75m cable")),{},ctx)).json();
  const offers=data.offers.filter(o=>o.store==="Home Depot Canada");
- // Seeded Home Depot product is also mocked; the two unavailable metadata offers must never appear.
- assert.equal(offers.some(o=>o.url===links[0]),false);
- assert.equal(offers.some(o=>o.url===links[1]),false);
+ assert.equal(offers.length,1,JSON.stringify(offers));
+ assert.equal(offers[0].url,links[2]);
+ assert.equal(offers[0].price,79.99);
 });
