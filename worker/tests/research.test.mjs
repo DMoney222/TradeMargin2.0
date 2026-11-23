@@ -40,7 +40,7 @@ test("service responds with version and correct API mode",async()=>{
  const r=await worker.fetch(new Request("https://trademargin.test/health"),{},ctx);
  const value=await r.json();
  assert.equal(value.ok,true);
- assert.equal(value.version,"3.2.0");
+ assert.equal(value.version,"3.3.0");
  assert.equal(value.paid_api,false);
 });
 test("finds only correct 5/4x6x8 pressure-treated prices and ignores stores without prices",async()=>{
