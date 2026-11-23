@@ -188,5 +188,7 @@ test("inferred-currency Lyons reference cannot enter verified CAD offers",async(
  const data=await (await worker.fetch(new Request("https://test.local/search?query="+encodeURIComponent("Deck boards pressure treated 5/4 x 6 x 8 ft")),{},ctx)).json();
  assert.equal(data.offers.some(o=>o.price_currency_inferred===true),false);
  assert.equal(data.offers.some(o=>o.currency_verified!==true),false);
- assert.equal(data.suppliers["Lyons Timber Mart (Ontario)"].count,1,"reference remains diagnosed but is excluded from verified offers");
+ assert.equal(data.suppliers["Lyons Timber Mart (Ontario)"].count,0);
+ assert.equal(data.suppliers["Lyons Timber Mart (Ontario)"].unverified_currency_count,1);
+ assert.equal(data.suppliers["Lyons Timber Mart (Ontario)"].status,"unverified_currency");
 });
