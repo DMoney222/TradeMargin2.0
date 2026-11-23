@@ -147,6 +147,14 @@ function packageDescription(name){
  if(volume)return "Container: "+volume[1]+" "+volume[2];
  return "Package size not confirmed — check listing";
 }
+function fastenerLengthInches(label){
+ const m=String(label||"").match(/(\d+(?:\.\d+)?(?:-\d+\/\d+)?|\d+\/\d+)\s*(?:-\s*)?(?:inches?|in\b|["”])/i);
+ if(!m)return null;
+ const raw=m[1],parts=raw.split("-");
+ if(parts.length===2){const f=parts[1].split("/");return Number(parts[0])+Number(f[0])/Number(f[1])}
+ if(raw.includes("/")){const f=raw.split("/");return Number(f[0])/Number(f[1])}
+ return Number(raw);
+}
 function classifyMatch(item,offer){
  const query=String(item.name||""),name=String(offer.name||"");
  const wanted=itemType(query),product=itemType(name);
@@ -162,6 +170,13 @@ function classifyMatch(item,offer){
  if(wanted==="deck-board"&&boardMaterial(item)==="natural"&&(composite||isPT))return null;
  if(/composite/i.test(query)&&!composite)return null;
  if(/nmd90/i.test(query)&&/ac90/i.test(name))return null;
+ if(wanted==="deck-screws"||wanted==="drywall-screws"){
+   const requested=fastenerLengthInches(query);
+   if(requested!==null){
+     const offered=fastenerLengthInches(name);
+     if(offered===null||Math.abs(offered-requested)>0.03)return null;
+   }
+ }
  const d=item.dimensions||{};
  if(d.thickness||d.width||d.length){
    const p=lumberDimensions(name);
