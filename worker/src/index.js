@@ -3,8 +3,8 @@
  * Cloudflare Worker: public retailer pages, verified CAD amounts only.
  * No paid API, no fabricated "live" prices, no local-stock claims.
  */
-const VERSION="3.6.1";
-const BUILD_TAG="aggregate-offer-guard-v3-6-1";
+const VERSION="3.6.2";
+const BUILD_TAG="supplier-error-diagnostics-v3-6-2";
 const SHOPS={
   "Kent":"kent.ca",
   "Home Depot Canada":"homedepot.ca",
@@ -329,6 +329,12 @@ async function searchStore(store,site,query){
  }
  const productPages=[];
  const offers=[];
+ const failures={};
+ const recordFailure=e=>{
+  const message=String(e?.message||e);
+  const kind=/HTTP 403\b/.test(message)?"access_denied":/HTTP 429\b/.test(message)?"rate_limited":/HTTP [45]\d\d\b/.test(message)?"http_error":/timeout|abort/i.test(message)?"timeout":"fetch_error";
+  failures[kind]=(failures[kind]||0)+1;
+ };
  await Promise.all(urls.map(async link=>{
   try{
    const html=await readPage(link,site,800000);
@@ -337,7 +343,7 @@ async function searchStore(store,site,query){
    if(isDeck5Quarter6x8(query)&&!(/\/product\/|\/en\/[^\/]+-\d{4,}|\/p\/\d+/.test(new URL(link).pathname))){
     productPages.push(...categoryProductLinks(html,link,site));
    }
-  }catch(e){s.note=String(e.message).slice(0,100)}
+  }catch(e){recordFailure(e)}
  }));
  if(productPages.length){
   await Promise.all(productPages.slice(0,3).map(async link=>{
@@ -346,7 +352,7 @@ async function searchStore(store,site,query){
     const html=await readPage(link,site,800000);
     s.checked++;
     offers.push(...productData(html,link,store).filter(o=>exactEnough(query,o.name)));
-   }catch(e){s.note=String(e.message).slice(0,100)}
+   }catch(e){recordFailure(e)}
   }));
  }
  const unique=new Map();
@@ -355,6 +361,10 @@ async function searchStore(store,site,query){
   if(!unique.has(key))unique.set(key,o);
  }
  s.count=unique.size;
+ if(Object.keys(failures).length){
+  s.failures=Object.fromEntries(Object.entries(failures).sort(([a],[b])=>a.localeCompare(b)));
+  s.note="Some supplier pages could not be checked; see failure counts. This does not mean products are unavailable.";
+ }
  s.status=s.count?"results":(s.note||s.discovery_error?"limited":"no_prices");
  if(!urls.length)s.note="No publicly indexed matching retailer pages";
  if(!s.count&&!s.note)s.note="Pages checked but no exact CAD-priced product data found";
