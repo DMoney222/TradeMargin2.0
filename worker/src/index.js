@@ -3,8 +3,8 @@
  * Cloudflare Worker: public retailer pages, verified CAD amounts only.
  * No paid API, no fabricated "live" prices, no local-stock claims.
  */
-const VERSION="3.5.0";
-const BUILD_TAG="kent-category-search-exact-dimensions-v3-2";
+const VERSION="3.6.0";
+const BUILD_TAG="fastener-package-precision-v3-6";
 const SHOPS={
   "Kent":"kent.ca",
   "Home Depot Canada":"homedepot.ca",
@@ -177,6 +177,12 @@ function wireLengthMetres(text){
  if(!m)return null;
  return Number(m[1])*(m[2].toLowerCase().startsWith("f")?0.3048:1);
 }
+function fastenerPackageCount(text){
+ const t=String(text||"").toLowerCase().replace(/,/g,"");
+ const m=t.match(/\b(\d{1,5})\s*(?:-|\s)?(?:pk|pack|pcs|pieces|count|ct)\b/) ||
+         t.match(/\b(?:pack|box)\s+of\s+(\d{1,5})\b/);
+ return m?Number(m[1]):null;
+}
 function exactEnough(query,productName){
  const q=String(query||"").toLowerCase(),p=String(productName||"").toLowerCase();
  const a=category(q),b=category(p);
@@ -199,6 +205,8 @@ function exactEnough(query,productName){
   if(need!==null&&(got===null||Math.abs(need-got)>0.03))return false;
   const gauge=q.match(/#\s*(\d+)/),stock=p.match(/#\s*(\d+)/);
   if(gauge&&(!stock||gauge[1]!==stock[1]))return false;
+  const requestedPack=fastenerPackageCount(q);
+  if(requestedPack!==null&&fastenerPackageCount(p)!==requestedPack)return false;
  }
  const qs=lumberSize(q);
  if(qs){
