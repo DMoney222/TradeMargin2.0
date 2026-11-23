@@ -8,7 +8,9 @@ const products={
  "5-4-x-6-x-8-brown-pressure-treated-decking":CAD("5/4 x 6 x 8' Brown Pressure Treated Decking",7.99),
  "pressure-treated-5-4-x-6-x-8-premium-wood-decking":CAD("Pressure Treated 5/4 x 6 x 8' Premium Wood Decking (Above Ground Use Only)",5.29),
  "pressure-treated-d4s-wood-deck-board-5-4-in-x-6-in-x-8-ft":CAD("Pressure Treated D4S Wood Deck Board 5/4-in x 6-in x 8-ft - Brown",8.80),
- "54-x-6-x-8-pressure-treated-wood-decking":"<html><h1>5/4 x 6 x 8' Pressure Treated Decking</h1><p>Price in store</p></html>"
+ "54-x-6-x-8-pressure-treated-wood-decking":"<html><h1>5/4 x 6 x 8' Pressure Treated Decking</h1><p>Price in store</p></html>",
+ "8-x-3-deck-screw-brown":CAD('#8 x 3" Deck Screw Brown 500 Pack',23.99),
+ "8-x-2-deck-screw-brown":CAD('#8 x 2" Deck Screw Brown 500 Pack',19.99)
 };
 function makeMock(){
  const cache=new Map(),calls=[];
@@ -19,6 +21,10 @@ function makeMock(){
  globalThis.fetch=async(input)=>{
   const url=String(input);
   calls.push(url);
+  if(url.includes("catalogsearch/result"))
+   return new Response('<html><div id="product-list">'+
+    '<a class="product-item-link" href="https://kent.ca/en/8-x-3-deck-screw-brown-500-pack-1853850-brn">#8 x 3&quot; Deck Screw Brown 500 Pack</a>'+
+    '<a class="product-item-link" href="https://kent.ca/en/8-x-2-deck-screw-brown-500-pack-1853850-brn">#8 x 2&quot; Deck Screw Brown 500 Pack</a></div></html>',{status:200});
   if(url.includes("bing.com"))return new Response('<?xml version="1.0"?><rss><channel></channel></rss>',{status:200});
   for(const [key,body] of Object.entries(products)){
    if(url.includes(key))return new Response(body,{status:200,headers:{"Content-Type":"text/html"}});
@@ -72,4 +78,14 @@ test("invalid queries are rejected",async()=>{
  makeMock();
  const r=await worker.fetch(new Request("https://trademargin.test/search?query=a"),{},ctx);
  assert.equal(r.status,400);
+});
+
+test("Kent on-site material research rejects wrong screw lengths",async()=>{
+ makeMock();
+ const r=await worker.fetch(new Request("https://trademargin.test/search?query="+encodeURIComponent("deck screws 3 inch")),{},ctx);
+ const data=await r.json();
+ const kent=data.offers.filter(o=>o.store==="Kent");
+ assert.equal(kent.length,1,JSON.stringify(data.suppliers));
+ assert.equal(kent[0].name,'#8 x 3" Deck Screw Brown 500 Pack');
+ assert.equal(kent[0].price,23.99); // unit test fixture, not an observed retailer price
 });
