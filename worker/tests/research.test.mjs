@@ -42,7 +42,7 @@ test("service responds with version and correct API mode",async()=>{
  const r=await worker.fetch(new Request("https://trademargin.test/health"),{},ctx);
  const value=await r.json();
  assert.equal(value.ok,true);
- assert.equal(value.version,"3.6.3");
+ assert.equal(value.version,"3.6.4");
  assert.equal(value.paid_api,false);
 });
 test("finds only correct 5/4x6x8 pressure-treated prices and ignores stores without prices",async()=>{
@@ -207,4 +207,32 @@ test("estimator explains supplier failures and unverified currency without claim
  assert.ok(html.includes('online?.status==="unverified_currency"'));
  assert.match(html,/does not mean out of stock/);
  assert.match(html,/CAD currency was not explicitly verified/);
+});
+
+
+test("BMR is included but does not invent a price when public discovery finds nothing",async()=>{
+ makeMock();
+ const data=await (await worker.fetch(new Request("https://test.local/search?query="+encodeURIComponent("14/2 NMD90 75m cable")),{},ctx)).json();
+ assert.ok(data.suppliers.BMR,"BMR must have a visible supplier status");
+ assert.equal(data.suppliers.BMR.count,0);
+ assert.equal(data.offers.some(o=>o.store==="BMR"),false);
+});
+
+test("BMR accepts only exact product matches with explicit CAD structured Offer prices",async()=>{
+ makeMock();
+ const original=globalThis.fetch;
+ const url="https://www.bmr.ca/en/product/pressure-treated-deck-board-1234567";
+ globalThis.fetch=async input=>{
+  const u=String(input);
+  if(u.includes("bing.com")&&u.includes("site%3Abmr.ca"))return new Response("<rss><channel><item><link>"+url+"</link></item></channel></rss>");
+  if(u===url)return new Response(CAD("Pressure treated deck board 5/4 x 6 x 8 ft",12.34)); // mock price only
+  return original(input);
+ };
+ const data=await (await worker.fetch(new Request("https://test.local/search?query="+encodeURIComponent("Deck boards pressure treated 5/4 x 6 x 8 ft")),{},ctx)).json();
+ const offer=data.offers.find(o=>o.store==="BMR");
+ assert.ok(offer,JSON.stringify(data.suppliers.BMR));
+ assert.equal(offer.price,12.34);
+ assert.equal(offer.currency_verified,true);
+ assert.equal(offer.store_verified,false);
+ assert.equal(offer.stock_verified,false);
 });
