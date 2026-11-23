@@ -3,8 +3,8 @@
  * Cloudflare Worker: public retailer pages, verified CAD amounts only.
  * No paid API, no fabricated "live" prices, no local-stock claims.
  */
-const VERSION="3.6.4";
-const BUILD_TAG="bmr-public-discovery-v3-6-4";
+const VERSION="3.6.5";
+const BUILD_TAG="exclude-unavailable-offers-v3-6-5";
 const SHOPS={
   "Kent":"kent.ca",
   "Home Depot Canada":"homedepot.ca",
@@ -108,6 +108,9 @@ function productData(doc,url,store){
     if(!o||typeof o!=="object")continue;
     const offerTypes=Array.isArray(o["@type"])?o["@type"]:[o["@type"]];
     if(!offerTypes.some(type=>String(type).split("/").pop()==="Offer"))continue;
+    // An explicitly unavailable listing is not a purchasable current offer.
+    const availability=String(o.availability||"").split("/").pop().toLowerCase();
+    if(["outofstock","soldout","discontinued","preorder","presale"].includes(availability))continue;
     if(o.price===undefined||o.price===null||String(o.price).trim()==="")continue;
     const price=Number(String(o.price).replace(/,/g,""));
     const currency=String(o.priceCurrency||p.priceCurrency||"").toUpperCase();
