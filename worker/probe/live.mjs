@@ -11,11 +11,11 @@ for(let i=0;i<4;i++){
   const r=await get(root+"/health");
   health=JSON.parse(r.body);
   console.log("HEALTH",r.http,JSON.stringify(health));
-  if(health.version==="3.0.0")break;
+  if(health.version==="3.1.0")break;
  }catch(e){console.log("HEALTH ERROR:",String(e).slice(0,200))}
  await new Promise(ok=>setTimeout(ok,10000));
 }
-if(health?.version!=="3.0.0"){
+if(health?.version!=="3.1.0"){
  console.error("FAIL: Deployed Worker does not advertise v3 yet.");
  process.exitCode=1;
 }
