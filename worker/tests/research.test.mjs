@@ -40,7 +40,7 @@ test("service responds with version and correct API mode",async()=>{
  const r=await worker.fetch(new Request("https://trademargin.test/health"),{},ctx);
  const value=await r.json();
  assert.equal(value.ok,true);
- assert.equal(value.version,"3.3.0");
+ assert.equal(value.version,"3.4.0");
  assert.equal(value.paid_api,false);
 });
 test("finds only correct 5/4x6x8 pressure-treated prices and ignores stores without prices",async()=>{
@@ -90,4 +90,12 @@ test("Kent on-site material research rejects wrong screw lengths",async()=>{
  assert.equal(kent.length,1,JSON.stringify(data.suppliers));
  assert.equal(kent[0].name,'#8 x 3" Deck Screw Brown 500 Pack');
  assert.equal(kent[0].price,23.99); // unit test fixture, not an observed retailer price
+});
+
+test("trade distributor prices are not fabricated without approved account access",async()=>{
+ makeMock();
+ const data=await (await worker.fetch(new Request("https://trademargin.test/search?query="+encodeURIComponent("14/2 NMD90 75m cable")),{},ctx)).json();
+ assert.equal(data.suppliers["Graybar Canada"].status,"account_required");
+ assert.equal(data.suppliers["Eddy Group"].status,"account_required");
+ assert.equal(data.offers.filter(o=>o.store==="Graybar Canada"||o.store==="Eddy Group").length,0);
 });
