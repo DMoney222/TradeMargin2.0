@@ -50,15 +50,15 @@ async function readPage(url, allowedHost, maxBytes=720000){
   if(size>maxBytes)throw Error("Page too large");
   const reader=r.body?.getReader();
   if(!reader)return (await r.text()).slice(0,maxBytes);
-  let bytes=0,chunks=[];
+  let bytes=0,text="",decoder=new TextDecoder();
   while(true){
    const {value,done}=await reader.read();
    if(done)break;
    bytes+=value.byteLength;
    if(bytes>maxBytes){await reader.cancel();break}
-   chunks.push(value);
+   text+=decoder.decode(value,{stream:true});
   }
-  return new TextDecoder().decode(Uint8Array.from(chunks.flatMap(b=>[...b]))).slice(0,maxBytes);
+  return text+decoder.decode();
  }
  throw Error("Too many redirects");
 }
@@ -91,7 +91,9 @@ function productData(doc,url,store){
  for(const hit of doc.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)){
   if(!/application\/ld\+json/i.test(hit[1]))continue;
   let data;
-  try{data=JSON.parse(unescapeEntities(hit[2]))}catch{continue}
+  try{data=JSON.parse(hit[2].trim())}catch{
+   try{data=JSON.parse(unescapeEntities(hit[2]))}catch{continue}
+  }
   for(const p of jsonProducts(data)){
    const name=typeof p.name==="string"?stripHtml(p.name):"";
    if(!name||name.length>300)continue;
@@ -120,8 +122,9 @@ function productData(doc,url,store){
  return output;
 }
 function lumberSize(value){
- const m=String(value).replace(/×/g,"x")
-  .match(/(5\/4|\d+(?:\.\d+)?)\s*(?:in\.?|inches|["”])?\s*[x]\s*(\d+(?:\.\d+)?)\s*(?:in\.?|inches|["”])?\s*[x]\s*(\d+(?:\.\d+)?)(?:\s*(?:ft\.?|feet|foot|['’]))?/i);
+ const normalized=String(value).replace(/×/g,"x")
+  .replace(/(\d(?:\/\d+)?)-in\b/gi,"$1").replace(/(\d)-ft\b/gi,"$1");
+ const m=normalized.match(/(5\/4|\d+(?:\.\d+)?)\s*(?:in\.?|inches|["”])?\s*x\s*(\d+(?:\.\d+)?)\s*(?:in\.?|inches|["”])?\s*x\s*(\d+(?:\.\d+)?)(?:\s*(?:ft\.?|feet|foot|['’]))?/i);
  return m?{t:m[1]==="5/4"?1.25:Number(m[1]),w:Number(m[2]),l:Number(m[3])}:null;
 }
 function category(name){
