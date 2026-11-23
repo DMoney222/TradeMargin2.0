@@ -132,7 +132,7 @@ function searchTokens(value){
 }
 function lumberDimensions(name){
  const t=String(name||"").toLowerCase().replace(/×/g,"x");
- const m=t.match(/(\d+(?:\.\d+)?|5\/4)\s*(?:in\.?|")?\s*x\s*(\d+(?:\.\d+)?)\s*(?:in\.?|")?\s*x\s*(\d+(?:\.\d+)?)\s*(?:ft\.?|')?/);
+ const m=t.match(/(5\/4|\d+(?:\.\d+)?)\s*(?:in\.?|")?\s*x\s*(\d+(?:\.\d+)?)\s*(?:in\.?|")?\s*x\s*(\d+(?:\.\d+)?)\s*(?:ft\.?|')?/);
  if(!m)return null;
  return {thickness: m[1]==="5/4"?1.25:Number(m[1]),width:Number(m[2]),length:Number(m[3])};
 }
