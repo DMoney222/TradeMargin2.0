@@ -131,10 +131,11 @@ function searchTokens(value){
  return String(value||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim().split(" ").map(w=>syn[w]||w.replace(/s$/,"")).filter(w=>w.length>2&&!["the","and","for","with","inch","feet","foot","each","size","pack"].includes(w));
 }
 function lumberDimensions(name){
- const t=String(name||"").toLowerCase().replace(/×/g,"x");
- const m=t.match(/(5\/4|\d+(?:\.\d+)?)\s*(?:in\.?|")?\s*x\s*(\d+(?:\.\d+)?)\s*(?:in\.?|")?\s*x\s*(\d+(?:\.\d+)?)\s*(?:ft\.?|')?/);
+ const t=String(name||"").toLowerCase().replace(/×/g,"x")
+  .replace(/(\d(?:\/\d+)?)-in\b/gi,"$1").replace(/(\d)-ft\b/gi,"$1");
+ const m=t.match(/(5\/4|\d+(?:\.\d+)?)\s*(?:in\.?|")?\s*x\s*(\d+(?:\.\d+)?)\s*(?:in\.?|")?\s*x\s*(\d+(?:\.\d+)?)(?:\s*(?:ft\.?|'))?/);
  if(!m)return null;
- return {thickness: m[1]==="5/4"?1.25:Number(m[1]),width:Number(m[2]),length:Number(m[3])};
+ return {thickness:m[1]==="5/4"?1.25:Number(m[1]),width:Number(m[2]),length:Number(m[3])};
 }
 function packageDescription(name){
  const t=String(name||"");
@@ -301,7 +302,7 @@ function showItemPriceResults(item,holder){
    const link=el("a","","View retailer product ↗");link.target="_blank";link.rel="noopener noreferrer";
    const choose=button("Add this supplier price to estimate",()=>{
      const entry=matches[Number(select.value)],o=entry.o;
-     const newOffer={store,price:String(o.price),url:o.url,sourceName:o.name,
+     const newOffer={store,price:String(o.price),url:o.url,sourceName:o.name,source:o.source||"Retailer listing",
        checkedAt:o.checked_at||payload.updated,location:o.location||"Store not verified",storeVerified:!!o.store_verified};
      const existing=item.offers.find(row=>row.store===store);
      if(existing)Object.assign(existing,newOffer);else item.offers.push(newOffer);
@@ -312,7 +313,9 @@ function showItemPriceResults(item,holder){
    },"secondary");
    const updateSelection=()=>{
      const entry=matches[Number(select.value)],o=entry.o;
-     info.textContent=money(o.price)+" • "+packageDescription(o.name)+" • "+entry.warnings.join(" • ");
+     info.textContent=money(o.price)+" • "+packageDescription(o.name)+" • "+
+       (o.source||"Retailer listing")+" • Last checked "+(o.checked_at?new Date(o.checked_at).toLocaleString():"unknown")+
+       (o.location?" • "+o.location:"")+(entry.warnings.length?" • "+entry.warnings.join(" • "):"");
      link.href=o.url;
      choose.textContent="Use "+money(o.price)+" from "+store;
    };
@@ -340,19 +343,23 @@ async function autoCheckPrices(onlyId=null){
  if(!targets.length){status.textContent="Add a material before searching for supplier prices.";return}
  status.textContent="Checking prices and researching matching products…";
  try{
-   const [supplierResponse,researchResponse]=await Promise.all([
+   const [supplierResponse,researchResponse,verifiedResponse]=await Promise.all([
      fetch("./data/prices.json?ts="+Date.now(),{cache:"no-store"}),
-     fetch("./data/web_research.json?ts="+Date.now(),{cache:"no-store"}).catch(()=>null)
+     fetch("./data/web_research.json?ts="+Date.now(),{cache:"no-store"}).catch(()=>null),
+     fetch("./data/verified_listings.json?ts="+Date.now(),{cache:"no-store"}).catch(()=>null)
    ]);
    if(!supplierResponse.ok)throw Error("Supplier database unavailable ("+supplierResponse.status+")");
    const feed=await supplierResponse.json();
    let research={offers:[],query:null,updated_at:null};
    if(researchResponse&&researchResponse.ok){try{research=await researchResponse.json()}catch(e){}}
+   let verified={offers:[],updated_at:null};
+   if(verifiedResponse?.ok){try{verified=await verifiedResponse.json()}catch(e){}}
    latestFeed=feed;displayFeed(feed);
    if(!Array.isArray(feed.offers))throw Error("Supplier database format is invalid");
    const researched=(Array.isArray(research.offers)?research.offers:[]).filter(o=>o.currency==="CAD"&&o.currency_verified&&o.store&&o.name&&Number(o.price)>0&&typeof o.url==="string"&&o.url.startsWith("https://"));
    const checked=feed.updated_at?new Date(feed.updated_at).toLocaleString():"Unknown";
-   const combined=[...researched,...feed.offers];
+   const snapshots=(Array.isArray(verified.offers)?verified.offers:[]).filter(o=>o.currency_verified===true&&o.currency==="CAD"&&Number(o.price)>0&&priceSuppliers.includes(o.store)&&/^https:\/\//.test(o.url));
+   const combined=[...researched,...snapshots,...feed.offers];
    const service=backendUrl();
    for(const item of targets){
      const requiresSize=itemType(item.name)==="deck-board"||itemType(item.name)==="lumber";
@@ -391,7 +398,7 @@ async function autoCheckPrices(onlyId=null){
      if(result)showItemPriceResults(item,result);
    }
    $("priceResults").replaceChildren();
-   status.textContent="Search completed. Supplier prices appear underneath "+(onlyId?"your material.":"each material.")+" Results only include matched product types and dimensions. Online research may be incomplete if stores block access.";
+   status.textContent="Research checked. Matches appear underneath "+(onlyId?"your material.":"each material.")+" Some are dated retailer snapshots, not guaranteed live Moncton prices. Online research may be incomplete if retailers block access.";
    const first=document.getElementById("price-for-"+targets[0].id);
    if(first)first.scrollIntoView({behavior:"smooth",block:"nearest"});
  }catch(err){status.textContent="Price checker couldn't load supplier data: "+err.message;
