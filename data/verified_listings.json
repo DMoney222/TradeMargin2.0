@@ -1,0 +1,49 @@
+{
+  "updated_at": "2026-11-23T01:27:09.586Z",
+  "source": "Manually checked on public retailer webpages; NOT a live automated quote",
+  "offers": [
+    {
+      "store": "Kent",
+      "name": "5/4 x 6 x 8' Brown Pressure Treated Decking",
+      "price": 7.99,
+      "currency": "CAD",
+      "currency_verified": true,
+      "unit": "each",
+      "url": "https://kent.ca/en/5-4-x-6-x-8-brown-pressure-treated-decking-1016532-brn",
+      "checked_at": "2026-11-23T01:27:09.586Z",
+      "source": "Retailer webpage price snapshot, NOT live",
+      "location": "Retailer website; Moncton store not selected or stock verified",
+      "store_verified": false,
+      "stock_verified": false
+    },
+    {
+      "store": "Home Depot Canada",
+      "name": "Pressure Treated 5/4 x 6 x 8' Premium Wood Decking (Above Ground Use Only)",
+      "price": 5.29,
+      "currency": "CAD",
+      "currency_verified": true,
+      "unit": "each",
+      "url": "https://www.homedepot.ca/product/pressure-treated-5-4-x-6-x-8-premium-wood-decking-above-ground-use-only/1000680745",
+      "checked_at": "2026-11-23T01:27:09.586Z",
+      "source": "Retailer webpage price snapshot, NOT live",
+      "location": "Retailer website; nearby-store stock not verified (page indicates out of stock online)",
+      "store_verified": false,
+      "stock_verified": false
+    },
+    {
+      "store": "RONA",
+      "name": "Pressure Treated D4S Wood Deck Board 5/4-in x 6-in x 8-ft - Brown",
+      "price": 8.8,
+      "currency": "CAD",
+      "currency_verified": true,
+      "unit": "each",
+      "url": "https://www.rona.ca/en/product/pressure-treated-d4s-wood-deck-board-5-4-in-x-6-in-x-8-ft-brown-120-101-84895016",
+      "checked_at": "2026-11-23T01:27:09.586Z",
+      "source": "Retailer webpage price snapshot, NOT live",
+      "location": "Retailer default store shown as RONA+ Golden Mile (Scarborough); not verified in Moncton",
+      "store_verified": false,
+      "stock_verified": false
+    }
+  ],
+  "note": "Examples checked against retailer public webpages on November 22, 2026. Prices and availability are NOT confirmed for Moncton and may change. Updated separately from live search."
+}
