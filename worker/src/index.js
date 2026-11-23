@@ -141,12 +141,31 @@ function category(name){
  if(/shingles?/.test(t))return "shingle";
  return "";
 }
+function fastenerInches(text){
+ const m=String(text).match(/(\d+(?:\.\d+)?(?:-\d+\/\d+)?|\d+\/\d+)\s*(?:-\s*)?(?:inches?|in\b|["”])/i);
+ if(!m)return null;
+ const parts=m[1].split("-");
+ if(parts.length===2){
+  const f=parts[1].split("/");
+  return Number(parts[0])+Number(f[0])/Number(f[1]);
+ }
+ if(m[1].includes("/")){const f=m[1].split("/");return Number(f[0])/Number(f[1])}
+ return Number(m[1]);
+}
 function exactEnough(query,productName){
  const q=String(query||"").toLowerCase(),p=String(productName||"").toLowerCase();
  const a=category(q),b=category(p);
  if(b==="irrelevant"||b==="tool"||(a&&b!==a))return false;
  if(/pressure[\s-]*treated/.test(q)&&(!/pressure[\s-]*treated/.test(p)||/composite/.test(p)))return false;
  if(/composite/.test(q)&&!/composite/.test(p))return false;
+ const fastener=/(?:deck|drywall)-screw|roof-nail/.test(a);
+ if(fastener){
+  const need=fastenerInches(q);
+  const got=fastenerInches(p);
+  if(need!==null&&(got===null||Math.abs(need-got)>0.03))return false;
+  const gauge=q.match(/#\\s*(\\d+)/),stock=p.match(/#\\s*(\\d+)/);
+  if(gauge&&(!stock||gauge[1]!==stock[1]))return false;
+ }
  const qs=lumberSize(q);
  if(qs){
   const ps=lumberSize(p);
@@ -216,6 +235,21 @@ function categoryProductLinks(html,url,site){
  }
  return results;
 }
+async function kentQueryLinks(query){
+ const url="https://kent.ca/en/catalogsearch/result/?q="+encodeURIComponent(query);
+ const html=await readPage(url,"kent.ca",3050000);
+ const at=html.indexOf('id="product-list"');
+ if(at<0)return [];
+ const section=html.slice(at,at+950000);
+ const urls=[];
+ for(const match of section.matchAll(/<a\b([^>]*\bclass=["'][^"']*product-item-link[^"']*["'][^>]*)>([\s\S]{0,600}?)<\/a>/gi)){
+  const a=attributes(match[1]),name=stripHtml(match[2]);
+  if(!a.href||!exactEnough(query,name)||!permitted(a.href,"kent.ca"))continue;
+  if(!urls.includes(a.href))urls.push(a.href);
+  if(urls.length>=5)break;
+ }
+ return urls;
+}
 async function searchStore(store,site,query){
  const s={store,checked:0,count:0,status:"no_prices",source:"public web"};
  const urls=[];
@@ -225,7 +259,14 @@ async function searchStore(store,site,query){
   // If exact known pages are blocked, category pages may provide structured offers.
   for(const u of CATEGORIES[store]||[])add(u);
  }
- // General items use public search-index discovery.
+ // Kent publishes a public onsite material search, useful when Bing RSS returns no items.
+ if(store==="Kent"&&!urls.length){
+  try{
+   for(const link of await kentQueryLinks(query))add(link);
+   if(urls.length)s.discovery="Kent public catalogue search";
+  }catch(e){s.search_note=String(e.message).slice(0,100)}
+ }
+ // General items use public search-index discovery when onsite search isn't available.
  if(!urls.length){
   const res=await indexedPages(site,query);
   for(const u of res.urls)add(u);
