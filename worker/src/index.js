@@ -3,7 +3,7 @@
  * Cloudflare Worker: public retailer pages, verified CAD amounts only.
  * No paid API, no fabricated "live" prices, no local-stock claims.
  */
-const VERSION="3.1.0";
+const VERSION="3.2.0";
 const BUILD_TAG="independent-kent-onsite-search-2026-11-22";
 const SHOPS={
   "Kent":"kent.ca",
@@ -237,7 +237,13 @@ function categoryProductLinks(html,url,site){
  return results;
 }
 async function kentQueryLinks(query){
- const url="https://kent.ca/en/catalogsearch/result/?q="+encodeURIComponent(query);
+ const type=category(query);
+ const siteQuery=type==="deck-screw"?"deck screws":
+   type==="drywall-screw"?"drywall screws":
+   type==="deck-board"&&/pressure[\\s-]*treated/i.test(query)?"pressure treated decking":
+   query.replace(/\\b\\d+(?:[\\/.\\-]\\d+)*\\s*(?:inch(?:es)?|ft|feet|mm|in)\\b/gi," ")
+     .replace(/\\s+/g," ").trim().split(" ").slice(0,5).join(" ");
+ const url="https://kent.ca/en/catalogsearch/result/?q="+encodeURIComponent(siteQuery);
  const html=await readPage(url,"kent.ca",3050000);
  const at=html.indexOf('id="product-list"');
  if(at<0)return [];
