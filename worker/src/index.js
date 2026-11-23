@@ -3,14 +3,15 @@
  * Cloudflare Worker: public retailer pages, verified CAD amounts only.
  * No paid API, no fabricated "live" prices, no local-stock claims.
  */
-const VERSION="3.6.3";
-const BUILD_TAG="verified-currency-only-v3-6-3";
+const VERSION="3.6.4";
+const BUILD_TAG="bmr-public-discovery-v3-6-4";
 const SHOPS={
   "Kent":"kent.ca",
   "Home Depot Canada":"homedepot.ca",
   "RONA":"rona.ca",
   "Home Hardware":"homehardware.ca",
   "Canadian Tire":"canadiantire.ca",
+  "BMR":"bmr.ca",
   "Lyons Timber Mart (Ontario)":"lyonstimbermart.ca",
   "Graybar Canada":"graybarcanada.com",
   "WESCO Canada":"buy.wesco.ca",
