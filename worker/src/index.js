@@ -240,9 +240,9 @@ async function kentQueryLinks(query){
  const type=category(query);
  const siteQuery=type==="deck-screw"?"deck screws":
    type==="drywall-screw"?"drywall screws":
-   type==="deck-board"&&/pressure[\\s-]*treated/i.test(query)?"pressure treated decking":
-   query.replace(/\\b\\d+(?:[\\/.\\-]\\d+)*\\s*(?:inch(?:es)?|ft|feet|mm|in)\\b/gi," ")
-     .replace(/\\s+/g," ").trim().split(" ").slice(0,5).join(" ");
+   type==="deck-board"&&/pressure[\s-]*treated/i.test(query)?"pressure treated decking":
+   query.replace(/\b\d+(?:[\/.\-]\d+)*\s*(?:inch(?:es)?|ft|feet|mm|in)\b/gi," ")
+     .replace(/\s+/g," ").trim().split(" ").slice(0,5).join(" ");
  const url="https://kent.ca/en/catalogsearch/result/?q="+encodeURIComponent(siteQuery);
  const html=await readPage(url,"kent.ca",3050000);
  const at=html.indexOf('id="product-list"');
