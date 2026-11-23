@@ -50,8 +50,9 @@ const $=id=>document.getElementById(id),num=x=>Math.max(0,Number(x)||0),money=x=
 let items=[];let latestFeed=null;const searchResultsById=new Map();
 const priceSuppliers=["Kent","Home Depot Canada","RONA","Home Hardware","Canadian Tire"];
 const backendKey="TradeMarginResearchBackend";
+const defaultResearchService="https://trademargin2-0.damonpatrickwalsh.workers.dev";
 function backendUrl(){
- const raw=($("researchBackend")?.value||localStorage.getItem(backendKey)||"").trim().replace(/\/$/,"");
+ const raw=($("researchBackend")?.value||localStorage.getItem(backendKey)||defaultResearchService).trim().replace(/\/$/,"");
  if(!raw)return "";
  try{const u=new URL(raw);return u.protocol==="https:"&&!u.username&&!u.password&&!u.search&&!u.hash?u.origin:""}catch(e){return ""}
 }
@@ -436,7 +437,7 @@ for(let trade of Object.keys(trades)){let o=el("option","",trade);o.value=trade;
 fields.forEach(k=>$(k).addEventListener("input",calculate));
 $("add").onclick=()=>{items.push(fresh());render()};$("template").onclick=loadTrade;$("clearitems").onclick=()=>{if(confirm("Remove all materials from this estimate?")){items=[];render()}};$("save").onclick=save;$("csv").onclick=exportCSV;$("print").onclick=()=>print();$("reset").onclick=()=>{if(confirm("Clear this entire project and its saved data?")){localStorage.removeItem("TradeMargin2Estimate");location.reload()}};
 $("autocheck").onclick=()=>autoCheckPrices();
-$("researchBackend").value=localStorage.getItem(backendKey)||"";
+$("researchBackend").value=localStorage.getItem(backendKey)||defaultResearchService;
 $("saveBackend").onclick=()=>{
  const u=backendUrl();
  if(!u){$("backendStatus").textContent="Please enter a valid HTTPS Worker URL.";return}
@@ -444,7 +445,7 @@ $("saveBackend").onclick=()=>{
  $("backendStatus").textContent="Research service address saved on this device. Select Test connection.";
 };
 $("testBackend").onclick=testBackend;
-if(backendUrl())$("backendStatus").textContent="Research service configured; select Test connection to verify.";
+if(backendUrl()){$("backendStatus").textContent="Cloudflare address loaded. Checking whether TradeMargin research API is running…";testBackend()}
 $("checkFeed").onclick=checkFeed;
 if(!restore())items=[];render();$("chooser").hidden=false;$("workspace").hidden=true;checkFeed();
 </script></body></html>
