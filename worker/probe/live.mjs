@@ -54,6 +54,9 @@ for(const path of [
   const title=(r.body.match(/<title[^>]*>([\s\S]*?)<\/title>/i)||[])[1]||"none";
   const productLinks=[...r.body.matchAll(/href=["'](https:\/\/(?:www\.)?(?:kent\.ca|homedepot\.ca)\/(?:en\/|product\/)[^"']+)["']/g)]
    .map(x=>x[1]).filter(x=>/screw|deck|wood/i.test(x)).slice(0,4);
-  console.log("QUERY PAGE",path,"HTTP",r.http,"LEN",r.body.length,"TITLE",title.trim().slice(0,100),"LINKS",JSON.stringify(productLinks));
+  const at=r.body.indexOf("product-item-link");
+  const at2=r.body.indexOf("product-item");
+  const after=at>=0?r.body.slice(Math.max(0,at-200),at+900).replace(/\s+/g," ").slice(0,500):"";
+  console.log("QUERY PAGE",path,"HTTP",r.http,"LEN",r.body.length,"TITLE",title.trim().slice(0,100),"LINKS",JSON.stringify(productLinks),"ITEM_OFFSET",at,"FIRST_PRODUCT_OFFSET",at2,"PRODUCT_SNIPPET",after);
  }catch(e){console.log("QUERY ERROR",path,String(e).slice(0,140))}
 }
