@@ -42,7 +42,7 @@ test("service responds with version and correct API mode",async()=>{
  const r=await worker.fetch(new Request("https://trademargin.test/health"),{},ctx);
  const value=await r.json();
  assert.equal(value.ok,true);
- assert.equal(value.version,"3.6.0");
+ assert.equal(value.version,"3.6.1");
  assert.equal(value.paid_api,false);
 });
 test("finds only correct 5/4x6x8 pressure-treated prices and ignores stores without prices",async()=>{
@@ -136,4 +136,22 @@ test("specified screw pack count 500 excludes identical screw sold in 100 pack",
  assert.equal(kent.length,1,JSON.stringify(data.suppliers));
  assert.match(kent[0].name,/500 Pack/);
  assert.equal(kent[0].price,23.99); // mock fixture, NOT a real advertised price
+});
+
+test("aggregate lowPrice is not a verified purchasable price",async()=>{
+ makeMock();
+ const prior=globalThis.fetch;
+ const url="https://www.homedepot.ca/product/electrical-wire-10000001";
+ globalThis.fetch=async input=>{
+  const u=String(input);
+  if(u.includes("bing.com")&&u.includes("homedepot.ca"))return new Response("<rss><channel><item><link>"+url+"</link></item></channel></rss>");
+  if(u===url)return new Response('<script type="application/ld+json">'+JSON.stringify({
+   "@type":"Product",name:"Southwire 14/2 NMD90 75m cable",
+   offers:{"@type":"AggregateOffer",lowPrice:15,highPrice:125,priceCurrency:"CAD"}
+  })+"</script>");
+  return prior(input);
+ };
+ const q=encodeURIComponent("14/2 NMD90 75m cable");
+ const data=await (await worker.fetch(new Request("https://test.local/search?query="+q),{},ctx)).json();
+ assert.equal(data.offers.filter(x=>x.store==="Home Depot Canada").length,0);
 });
