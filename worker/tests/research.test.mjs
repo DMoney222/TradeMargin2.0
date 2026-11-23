@@ -42,7 +42,7 @@ test("service responds with version and correct API mode",async()=>{
  const r=await worker.fetch(new Request("https://trademargin.test/health"),{},ctx);
  const value=await r.json();
  assert.equal(value.ok,true);
- assert.equal(value.version,"3.6.1");
+ assert.equal(value.version,"3.6.2");
  assert.equal(value.paid_api,false);
 });
 test("finds only correct 5/4x6x8 pressure-treated prices and ignores stores without prices",async()=>{
@@ -163,4 +163,21 @@ test("unspecified fastener pack count warns against comparing unlike package pri
  assert.match(vague.comparison_warning,/package quantity not specified/i);
  const specified=await (await worker.fetch(new Request("https://trademargin.test/search?query="+encodeURIComponent("deck screws #8 x 3 inch 500 pack")),{},ctx)).json();
  assert.equal(specified.comparison_warning,null);
+});
+
+
+test("supplier diagnostics count access-denied failures without treating them as out of stock",async()=>{
+ makeMock();
+ const original=globalThis.fetch;
+ globalThis.fetch=async input=>{
+  const url=String(input);
+  if(url.includes("homedepot.ca"))return new Response("Forbidden",{status:403});
+  return original(input);
+ };
+ const result=await (await worker.fetch(new Request("https://test.local/search?query="+encodeURIComponent("Deck boards pressure treated 5/4 x 6 x 8 ft")),{},ctx)).json();
+ const supplier=result.suppliers["Home Depot Canada"];
+ assert.equal(supplier.status,"limited");
+ assert.ok(supplier.failures.access_denied>=1,JSON.stringify(supplier));
+ assert.match(supplier.note,/does not mean products are unavailable/i);
+ assert.equal(result.offers.some(x=>x.store==="Home Depot Canada"),false);
 });
