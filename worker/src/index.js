@@ -3,7 +3,7 @@
  * Cloudflare Worker: public retailer pages, verified CAD amounts only.
  * No paid API, no fabricated "live" prices, no local-stock claims.
  */
-const VERSION="3.0.0";
+const VERSION="3.1.0";
 const SHOPS={
   "Kent":"kent.ca",
   "Home Depot Canada":"homedepot.ca",
@@ -315,7 +315,7 @@ export default {
   if(u.pathname!=="/search")return response({error:"Use /search?query=..."},404);
   const query=(u.searchParams.get("query")||"").trim();
   if(query.length<3||query.length>160||/[\u0000-\u001f]/.test(query))return response({error:"Query must be 3-160 characters"},400);
-  const key=new Request("https://cache.trademargin.invalid/v3/"+encodeURIComponent(query.toLowerCase()));
+  const key=new Request("https://cache.trademargin.invalid/"+VERSION+"/"+encodeURIComponent(query.toLowerCase()));
   const cache=caches.default;
   try{
    const hit=await cache.match(key);
