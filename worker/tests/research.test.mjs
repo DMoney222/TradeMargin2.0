@@ -191,4 +191,6 @@ test("inferred-currency Lyons reference cannot enter verified CAD offers",async(
  assert.equal(data.suppliers["Lyons Timber Mart (Ontario)"].count,0);
  assert.equal(data.suppliers["Lyons Timber Mart (Ontario)"].unverified_currency_count,1);
  assert.equal(data.suppliers["Lyons Timber Mart (Ontario)"].status,"unverified_currency");
+ assert.match(data.suppliers["Lyons Timber Mart (Ontario)"].currency_note,/CAD not explicitly confirmed/i);
+ assert.equal(data.offers.some(o=>o.store==="Lyons Timber Mart (Ontario)"),false);
 });
