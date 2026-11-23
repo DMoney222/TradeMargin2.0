@@ -142,7 +142,7 @@ function category(name){
  return "";
 }
 function fastenerInches(text){
- const m=String(text).match(/(\d+(?:\.\d+)?(?:-\d+\/\d+)?|\d+\/\d+)\s*(?:-\s*)?(?:inches?|in\b|["”])/i);
+ const m=String(text).match(/(\d+(?:\.\d+)?(?:-\d+\/\d+)?|\d+\/\d+)\s*(?:-\s*)?(?:inch(?:es)?|in\b|["”])/i);
  if(!m)return null;
  const parts=m[1].split("-");
  if(parts.length===2){
