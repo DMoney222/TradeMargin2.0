@@ -23,3 +23,12 @@ Owner explicitly requested ongoing work on live material price checking.
 
 ## Hourly log
 (Each scheduled pass should append timestamp, findings, code commits, test and deployment verification; distinguish attempted fixes from verified outcomes.)
+
+### November 22, 2026 — initial follow-up before overnight runs
+
+- **Scope reaffirmed:** Owner requested continued problem solving for all suppliers for the next eight hours. Existing hourly overnight automation was updated to cover every named retailer, verify actual results, and continue improvements without claiming inaccessible sources work.
+- **Concrete accuracy fix:** Worker version `3.6.0` now requires an **exact fastener package count** when the requested material specifies a pack size. This prevents a 100-pack of deck screws being mistaken for a 500-pack of the same gauge and length. Client-side `classifyMatch` uses the same check so old saved supplier listings cannot bypass it.
+- **Commits:** `30e8a09` Worker logic, `eb3771f` frontend logic, `4ab4d51` automated test fixtures for 100-vs-500 packs.
+- **Tests:** GitHub workflow "Verify TradeMargin search API" completed **successfully** for commit `4ab4d51`. The later GitHub Pages/Cloudflare automatic deployments should be checked separately; a passing mock test is **not** proof of live retailer access.
+- **Vendor limitations:** Home Depot Canada, Home Hardware, Graybar, WESCO, Eddy, BMR and other sources remain unverified for automated prices where earlier checks encountered timeouts, HTTP 403, or account-gated prices. Do not bypass protections. Home Depot Canada, Home Hardware and wholesalers remain priorities.
+- **Remaining accuracy issue:** When a user enters generic "deck screws" without a package quantity, offers of unlike pack sizes may still be incomparable. Warn users to specify an exact pack size before comparing, and improve unit-price normalization in a future pass.
