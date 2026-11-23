@@ -138,8 +138,8 @@ function lyonsPostedPrice(doc,url,store){
  if(!title||!amount)return [];
  const name=stripHtml(title[1]),price=Number(amount[1].replace(/,/g,""));
  if(!name||!Number.isFinite(price)||price<=0||price>100000)return [];
- return [{store,name,price,currency:"CAD",currency_verified:true,url,
-  checked_at:now(),source:"Ontario retailer displayed per-each product price (CAD assumed from Canadian store)",
+ return [{store,name,price,currency:null,currency_verified:false,url,
+  checked_at:now(),source:"Ontario retailer displayed per-each product price (currency unverified)",
   location:"Sault Ste. Marie, Ontario — OUT OF AREA; not Moncton pricing",
   store_verified:false,stock_verified:false,region:"Ontario",local:false,price_currency_inferred:true}];
 }
