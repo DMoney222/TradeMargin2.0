@@ -45,7 +45,7 @@ const trades={
 "Solar & Renewable Energy":["Solar module","Mounting rail","Roof mount","PV cable metre","Connector pair"],
 "General Contracting":["Lumber","Fasteners","Adhesive","Sealant","Consumables"],
 "Custom / Other Trade":[]};
-const vendors=["Kent","Home Depot Canada","RONA","Home Hardware","Canadian Tire","Wolseley","EMCO","Guillevin","Westburne","Nedco","Grainger","Local supplier"];
+const vendors=["Kent","Home Depot Canada","RONA","Home Hardware","Canadian Tire","Wolseley","EMCO","Guillevin","Westburne","Nedco","Graybar Canada","WESCO Canada","Eddy Group","Grainger","Local supplier"];
 const $=id=>document.getElementById(id),num=x=>Math.max(0,Number(x)||0),money=x=>new Intl.NumberFormat("en-CA",{style:"currency",currency:"CAD"}).format(x),fields=["project","trade","city","hours","rate","markup","tax","stopHours","shoppingRate","fuel","other","projectCosts"];
 let items=[];let latestFeed=null;const searchResultsById=new Map();
 const priceSuppliers=["Kent","Home Depot Canada","RONA","Home Hardware","Canadian Tire","Lyons Timber Mart (Ontario)","Graybar Canada","WESCO Canada","Eddy Group"];
@@ -307,15 +307,24 @@ function showItemPriceResults(item,holder){
    card.append(h);
    if(store==="Lyons Timber Mart (Ontario)")card.append(el("p","notice","⚠️ Ontario-only price reference. This supplier is not local to Moncton. Do not assume pickup or delivery is available in New Brunswick."));
    if(["Graybar Canada","WESCO Canada","Eddy Group"].includes(store))card.append(el("p","hint","⚡ Electrical distributor: public product listings may not show contractor prices. Log into your own distributor account to check your negotiated pricing, then enter it below. TradeMargin does not request your login details."));
+   const officialCatalog={"Graybar Canada":"https://www.graybarcanada.com/electrical-distribution",
+     "WESCO Canada":"https://buy.wesco.ca/","Eddy Group":"https://www.eddygroup.com/248598/category/electrical"};
+   if(officialCatalog[store]){
+     const catalog=el("a","secondary","🔐 Open "+store+" catalog / account ↗");
+     catalog.href=officialCatalog[store];catalog.target="_blank";catalog.rel="noopener noreferrer";
+     card.append(catalog);
+   }
    const search=el("a","secondary","🔎 Search "+store+" on Google / Safari ↗");
    search.href=googleProductUrl(item,store);search.target="_blank";search.rel="noopener noreferrer";
    card.append(search,el("p","hint","Google search is restricted to "+store+"'s website and includes this item's dimensions. Open the result in Safari, check the product and price, then return here."));
    if(!matches.length){
      const online=payload.onlineStatus?.[store];
+     const account=online?.status==="account_required";
      const blocked=/403|blocked|inaccessible/i.test(online?.note||"");
-     card.append(el("p","hint",blocked?
-       "This retailer restricted automated access. That does not mean the product is out of stock. Use the retailer link to confirm a price.":
-       "No exact verified price was returned for this supplier. You can research it on Google and enter its price below."));
+     card.append(el("p","hint",account?
+       "🔒 Account pricing required. This electrical distributor does not publish your trade price. Open your account or request a quote, then enter the actual price below.":
+       blocked?"⚠️ Automated access blocked by this supplier; that is not an out-of-stock result. Open its product page to verify the price.":
+       "No exact, verifiable CAD price was returned. You can check the retailer and enter a quoted price below."));
    }
    if(matches.length){found+=matches.length;
    const label=el("label","", "Matching product — "+store),select=el("select");
