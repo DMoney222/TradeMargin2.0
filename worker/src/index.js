@@ -4,7 +4,7 @@
  * No paid API, no fabricated "live" prices, no local-stock claims.
  */
 const VERSION="3.2.0";
-const BUILD_TAG="independent-kent-onsite-search-2026-11-22";
+const BUILD_TAG="kent-category-search-exact-dimensions-v3-2";
 const SHOPS={
   "Kent":"kent.ca",
   "Home Depot Canada":"homedepot.ca",
