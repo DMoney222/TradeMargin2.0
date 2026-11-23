@@ -42,7 +42,7 @@ test("service responds with version and correct API mode",async()=>{
  const r=await worker.fetch(new Request("https://trademargin.test/health"),{},ctx);
  const value=await r.json();
  assert.equal(value.ok,true);
- assert.equal(value.version,"3.6.5");
+ assert.equal(value.version,"3.6.6");
  assert.equal(value.paid_api,false);
 });
 test("finds only correct 5/4x6x8 pressure-treated prices and ignores stores without prices",async()=>{
@@ -253,4 +253,23 @@ test("explicitly unavailable JSON-LD offers are excluded while InStock offers re
  const data=await r.json();
  assert.equal(data.offers.some(o=>o.store==="Kent"),false);
  assert.equal(data.offers.some(o=>o.store==="Home Depot Canada"),true);
+});
+
+
+test("product metadata fallback excludes explicitly out-of-stock and preorder offers",async()=>{
+ makeMock();
+ const previous=globalThis.fetch;
+ const links=["https://www.homedepot.ca/product/pressure-treated-decking-10000001","https://www.homedepot.ca/product/pressure-treated-decking-10000002","https://www.homedepot.ca/product/pressure-treated-decking-10000003"];
+ globalThis.fetch=async input=>{
+  const url=String(input);
+  if(url.includes("bing.com")&&url.includes("homedepot.ca"))return new Response("<rss><channel>"+links.map(link=>"<item><link>"+link+"</link></item>").join("")+"</channel></rss>");
+  const index=links.indexOf(url);
+  if(index>=0)return new Response('<meta property="og:title" content="Pressure Treated Deck Board 5/4 x 6 x 8 ft"><meta property="product:price:amount" content="9.99"><meta property="product:price:currency" content="CAD"><meta property="product:availability" content="'+["out of stock","https://schema.org/PreOrder","in stock"][index]+'">');
+  return previous(input);
+ };
+ const data=await (await worker.fetch(new Request("https://test.local/search?query="+encodeURIComponent("Deck boards pressure treated 5/4 x 6 x 8 ft")),{},ctx)).json();
+ const offers=data.offers.filter(o=>o.store==="Home Depot Canada");
+ // Seeded Home Depot product is also mocked; the two unavailable metadata offers must never appear.
+ assert.equal(offers.some(o=>o.url===links[0]),false);
+ assert.equal(offers.some(o=>o.url===links[1]),false);
 });
