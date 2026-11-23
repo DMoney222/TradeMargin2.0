@@ -155,3 +155,12 @@ test("aggregate lowPrice is not a verified purchasable price",async()=>{
  const data=await (await worker.fetch(new Request("https://test.local/search?query="+q),{},ctx)).json();
  assert.equal(data.offers.filter(x=>x.store==="Home Depot Canada").length,0);
 });
+
+
+test("unspecified fastener pack count warns against comparing unlike package prices",async()=>{
+ makeMock();
+ const vague=await (await worker.fetch(new Request("https://trademargin.test/search?query="+encodeURIComponent("deck screws 3 inch")),{},ctx)).json();
+ assert.match(vague.comparison_warning,/package quantity not specified/i);
+ const specified=await (await worker.fetch(new Request("https://trademargin.test/search?query="+encodeURIComponent("deck screws #8 x 3 inch 500 pack")),{},ctx)).json();
+ assert.equal(specified.comparison_warning,null);
+});
