@@ -10,7 +10,8 @@ const products={
  "pressure-treated-d4s-wood-deck-board-5-4-in-x-6-in-x-8-ft":CAD("Pressure Treated D4S Wood Deck Board 5/4-in x 6-in x 8-ft - Brown",8.80),
  "54-x-6-x-8-pressure-treated-wood-decking":"<html><h1>5/4 x 6 x 8' Pressure Treated Decking</h1><p>Price in store</p></html>",
  "8-x-3-deck-screw-brown":CAD('#8 x 3" Deck Screw Brown 500 Pack',23.99),
- "8-x-2-deck-screw-brown":CAD('#8 x 2" Deck Screw Brown 500 Pack',19.99)
+ "8-x-2-deck-screw-brown":CAD('#8 x 2" Deck Screw Brown 500 Pack',19.99),
+ "5-4x6x8-brown-pressure-treated-decking":'<html><h1>5/4"x6"x8&#39; Brown Pressure Treated Decking</h1><em class="price">$8.25</em><span class="per">Each</span></html>'
 };
 function makeMock(){
  const cache=new Map(),calls=[];
@@ -48,8 +49,9 @@ test("finds only correct 5/4x6x8 pressure-treated prices and ignores stores with
  const r=await worker.fetch(req,{},ctx);
  assert.equal(r.status,200);
  const data=await r.json();
- assert.equal(data.offers.length,3,JSON.stringify(data.suppliers));
+ assert.equal(data.offers.length,4,JSON.stringify(data.suppliers));
  const byStore=Object.fromEntries(data.offers.map(o=>[o.store,o]));
+ assert.equal(byStore["Lyons Timber Mart (Ontario)"]?.price,8.25);
  assert.equal(byStore.Kent.price,7.99);
  assert.equal(byStore["Home Depot Canada"].price,5.29);
  assert.equal(byStore.RONA.price,8.8);
