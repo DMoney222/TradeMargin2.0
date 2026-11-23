@@ -2,7 +2,12 @@ const websites=[
  ["BMR product","https://www.bmr.ca/en/atika-treated-wood-brown-5-4-x-6-x-8-041-3903.html"],
  ["BMR category","https://www.bmr.ca/en/building-materials/decks-and-patios/treated-wood.html"],
  ["Gerber Timber Mart","https://www.gerbertimbermart.ca/5-4x6x8-deck-board-brown-treated"],
- ["Lyons Timber Mart","https://lyonstimbermart.ca/shop/151908/5-4x6x8-brown-pressure-treated-decking/"]
+ ["Lyons Timber Mart","https://lyonstimbermart.ca/shop/151908/5-4x6x8-brown-pressure-treated-decking/"],
+ ["Graybar Canada","https://www.graybarcanada.com/electrical-distribution"],
+ ["WESCO Canada","https://buy.wesco.ca/"],
+ ["Eddy Group","https://www.eddygroup.com/248598/category/electrical"],
+ ["Home Hardware","https://www.homehardware.ca/en/"],
+ ["Home Depot Canada electrical","https://www.homedepot.ca/product/southwire-14-2-nmd90-75m-romex-simpull-electrical-wire-white/1000108206"]
 ];
 for(const [name,url] of websites){
  try{
