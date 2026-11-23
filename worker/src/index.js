@@ -3,14 +3,15 @@
  * Cloudflare Worker: public retailer pages, verified CAD amounts only.
  * No paid API, no fabricated "live" prices, no local-stock claims.
  */
-const VERSION="3.2.0";
+const VERSION="3.3.0";
 const BUILD_TAG="kent-category-search-exact-dimensions-v3-2";
 const SHOPS={
   "Kent":"kent.ca",
   "Home Depot Canada":"homedepot.ca",
   "RONA":"rona.ca",
   "Home Hardware":"homehardware.ca",
-  "Canadian Tire":"canadiantire.ca"
+  "Canadian Tire":"canadiantire.ca",
+  "Lyons Timber Mart (Ontario)":"lyonstimbermart.ca"
 };
 const ORIGIN="https://dmoney222.github.io";
 const CORS={
@@ -122,6 +123,20 @@ function productData(doc,url,store){
  }
  return output;
 }
+function lyonsPostedPrice(doc,url,store){
+ // Lyons Timber Mart's own product pages use <em class="price">$8.25</em><span class="per">Each</span>.
+ // Only accept a standalone /shop/<SKU>/<slug> page, not general category prices.
+ if(store!=="Lyons Timber Mart (Ontario)"||!/\/shop\/\d{4,}\/[^/?]+\/?$/.test(new URL(url).pathname))return [];
+ const title=doc.match(/<h1\b[^>]*>([\s\S]{1,350}?)<\/h1>/i);
+ const amount=doc.match(/<em\b[^>]*class=["'][^"']*\bprice\b[^"']*["'][^>]*>\s*\$\s*([\d,]+(?:\.\d{2})?)\s*<\/em>\s*<span\b[^>]*class=["'][^"']*\bper\b[^"']*["'][^>]*>\s*Each\s*<\/span>/i);
+ if(!title||!amount)return [];
+ const name=stripHtml(title[1]),price=Number(amount[1].replace(/,/g,""));
+ if(!name||!Number.isFinite(price)||price<=0||price>100000)return [];
+ return [{store,name,price,currency:"CAD",currency_verified:true,url,
+  checked_at:now(),source:"Ontario retailer displayed per-each product price (CAD assumed from Canadian store)",
+  location:"Sault Ste. Marie, Ontario — OUT OF AREA; not Moncton pricing",
+  store_verified:false,stock_verified:false,region:"Ontario",local:false,price_currency_inferred:true}];
+}
 function lumberSize(value){
  const normalized=String(value).replace(/×/g,"x")
   .replace(/(\d(?:\/\d+)?)-in\b/gi,"$1").replace(/(\d)-ft\b/gi,"$1");
@@ -181,7 +196,8 @@ const SEED_URLS={
  "Kent":["https://kent.ca/en/5-4-x-6-x-8-brown-pressure-treated-decking-1016532-brn"],
  "Home Depot Canada":["https://www.homedepot.ca/product/pressure-treated-5-4-x-6-x-8-premium-wood-decking-above-ground-use-only/1000680745"],
  "RONA":["https://www.rona.ca/en/product/pressure-treated-d4s-wood-deck-board-5-4-in-x-6-in-x-8-ft-brown-120-101-84895016"],
- "Home Hardware":["https://www.homehardware.ca/en/54-x-6-x-8-pressure-treated-wood-decking-tanatone/p/2835240"]
+ "Home Hardware":["https://www.homehardware.ca/en/54-x-6-x-8-pressure-treated-wood-decking-tanatone/p/2835240"],
+ "Lyons Timber Mart (Ontario)":["https://lyonstimbermart.ca/shop/151908/5-4x6x8-brown-pressure-treated-decking/"]
 };
 const CATEGORIES={
  "Kent":["https://kent.ca/en/shop/decking/deck-boards/pressure-treated-deck-boards"],
@@ -285,7 +301,7 @@ async function searchStore(store,site,query){
   try{
    const html=await readPage(link,site,800000);
    s.checked++;
-   offers.push(...productData(html,link,store).filter(o=>exactEnough(query,o.name)));
+   offers.push(...[...productData(html,link,store),...lyonsPostedPrice(html,link,store)].filter(o=>exactEnough(query,o.name)));
    if(isDeck5Quarter6x8(query)&&!(/\/product\/|\/en\/[^\/]+-\d{4,}|\/p\/\d+/.test(new URL(link).pathname))){
     productPages.push(...categoryProductLinks(html,link,site));
    }
@@ -332,7 +348,7 @@ export default {
   const offers=results.flatMap(r=>r.offers);
   const payload={query,updated_at:now(),cached:false,version:VERSION,offers,
    suppliers:Object.fromEntries(results.map(r=>[r.status.store,r.status])),
-   note:"Only observed CAD prices. No store-specific Moncton or stock verification. Retailers may block automated access; no result does not mean an item is unavailable."};
+   note:"Only observed CAD prices. No store-specific Moncton or stock verification. Retailers may block automated access; no result does not mean an item is unavailable. Ontario retailer results are out-of-area price references, not local quotes."};
   try{ctx.waitUntil(cache.put(key,new Response(JSON.stringify(payload),
    {headers:{"Content-Type":"application/json","Cache-Control":"public, max-age=900"}})))}catch{}
   return response(payload);
