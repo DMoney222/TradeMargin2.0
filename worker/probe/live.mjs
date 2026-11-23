@@ -5,7 +5,7 @@ async function check(path,timeout=60000){
 }
 const health=await check("/health",12000);
 console.log("HEALTH",JSON.stringify(health));
-if(!health.data.ok||health.data.version!=="3.6.2")throw Error("Current research version not deployed");
+if(!health.data.ok||health.data.version!=="3.6.3")throw Error("Current research version not deployed");
 for(const query of ["Deck boards pressure treated 5/4 x 6 x 8 ft","deck screws 3 inch"]){
  const r=await check("/search?query="+encodeURIComponent(query));
  console.log("QUERY",query,"HTTP",r.code,"CACHED",r.data.cached,"VERSION",r.data.version);
