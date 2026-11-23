@@ -28,6 +28,13 @@ try{
  console.log("OFFERS",JSON.stringify((result.offers||[]).map(o=>({store:o.store,name:o.name,price:o.price,currency:o.currency,source:o.source,url:o.url}))));
  if(!result.offers?.length)console.error("LIVE WORKER HAS NO EXACT PRODUCT PRICES");
 }catch(e){console.log("SEARCH ERROR:",String(e));process.exitCode=1;}
+try{
+ const r=await get(root+"/search?query="+encodeURIComponent("deck screws 3 inch"),57000);
+ const data=JSON.parse(r.body);
+ console.log("GENERIC SCREWS LIVE TEST HTTP",r.http,"VERSION",data.version,"COUNT",data.offers?.length);
+ console.log("GENERIC SCREWS STORE STATUS",JSON.stringify(data.suppliers));
+ console.log("GENERIC SCREWS OFFERS",JSON.stringify((data.offers||[]).map(o=>({store:o.store,name:o.name,price:o.price,currency:o.currency,url:o.url}))));
+}catch(e){console.log("GENERIC SCREWS ERROR",String(e));}
 const urls={
  Kent:"https://kent.ca/en/5-4-x-6-x-8-brown-pressure-treated-decking-1016532-brn",
  HomeDepot:"https://www.homedepot.ca/product/pressure-treated-5-4-x-6-x-8-premium-wood-decking-above-ground-use-only/1000680745",
